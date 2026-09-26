@@ -129,13 +129,25 @@ router.post('/', verifyToken, async (req, res) => {
       year: 'numeric'
     });
     const leaderName = req.user.name || 'Team Leader';
+    const leaderId = String(req.user.id || req.user._id || '');
+    const leaderReg = String(req.user.registerNumber || '').toUpperCase();
+    const leaderEmail = String(req.user.email || '').toLowerCase();
 
     for (const student of resolvedAssignedMembers) {
+      // Exclude the student team leader who created/assigned the task from receiving an assignment email to themselves
+      const isAssignerLeader = String(student.id || student._id) === leaderId ||
+        (student.registerNumber && leaderReg && String(student.registerNumber).toUpperCase() === leaderReg) ||
+        (student.email && leaderEmail && String(student.email).toLowerCase() === leaderEmail);
+
+      if (isAssignerLeader && req.user.role === 'student') {
+        continue;
+      }
+
       const notifTitle = isGroup ? `📌 New Group Task Assigned: "${task.name}"` : `📌 New Task Assigned: "${task.name}"`;
       const notifMsg = `You were assigned ${isGroup ? 'group task' : 'task'} "${task.name}" in project "${project.projectName}". Milestone: "${milestoneName}". Priority: ${task.priority}. Due: ${taskDeadlineStr}.`;
 
       const emailHtml = generateProfessionalEmailTemplate({
-        headerTitle: 'Project Milestone Tracking Portal',
+        headerTitle: 'Rajeev Gandhi Memorial College of Engg. & Tech.',
         headerSubtitle: `Task Assignment Notice (${isGroup ? 'Group Deliverable' : 'Individual Allocation'})`,
         recipientName: student.name || 'Student',
         badgeText: isGroup ? 'Group Task Assigned' : 'Individual Task Assigned',
@@ -162,7 +174,9 @@ router.post('/', verifyToken, async (req, res) => {
         alertType: 'info'
       });
 
-      // Dispatch task assignment email immediately
+      console.log(`[Task Assigned Live Email] Dispatching to member ${student.email || 'No-Email'} (${student.name}) for task "${task.name}"`);
+
+      // Dispatch task assignment email immediately to team member
       await notifyUser({
         userId: student.id || student._id,
         userModel: 'User',
@@ -174,7 +188,7 @@ router.post('/', verifyToken, async (req, res) => {
         projectId: project.id || project._id,
         taskId: task.id || task._id,
         milestoneId: task.milestoneId,
-        type: `TASK_ASSIGNED_${task.id || task._id}`,
+        type: `TASK_ASSIGNED_${task.id || task._id}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
         title: notifTitle,
         message: notifMsg,
         emailHtml,

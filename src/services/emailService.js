@@ -2,28 +2,38 @@ const nodemailer = require('nodemailer');
 
 let transporter = null;
 
-const getTransporter = () => {
-  if (transporter) return transporter;
-
-  const host = process.env.EMAIL_HOST;
+const createTransporterInstance = () => {
+  const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
   const port = parseInt(process.env.EMAIL_PORT || '587', 10);
   const user = process.env.EMAIL_USER;
   const pass = process.env.EMAIL_PASSWORD;
 
   if (host && user && pass && pass !== 'app_specific_password_here') {
     const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
-    transporter = nodemailer.createTransport({
+    return nodemailer.createTransport({
       pool: !isServerless,
+      maxConnections: 5,
+      maxMessages: 100,
       host,
       port,
       secure: port === 465,
       auth: { user, pass },
-      tls: { rejectUnauthorized: false }
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000
     });
-    console.log(`Configured SMTP Email Transporter (${isServerless ? 'Direct' : 'Pooled'}) via ${host}:${port}`);
+  }
+  return null;
+};
+
+const getTransporter = () => {
+  if (transporter) return transporter;
+  transporter = createTransporterInstance();
+  if (transporter) {
+    console.log(`Configured SMTP Email Transporter via ${process.env.EMAIL_HOST || 'smtp.gmail.com'}:${process.env.EMAIL_PORT || '587'}`);
   } else {
     console.info('SMTP credentials not fully set; email service running in development/simulation mode.');
-    transporter = null;
   }
   return transporter;
 };
@@ -33,27 +43,35 @@ const getTransporter = () => {
  * @param {Object} options { to, subject, html, text }
  */
 const sendEmail = async ({ to, subject, html, text }) => {
+  if (!to || !to.trim()) {
+    console.warn('[Email Warning] Attempted to send email without a recipient.');
+    return { success: false, error: 'No recipient provided' };
+  }
+
+  const cleanTo = to.trim().toLowerCase();
   const from = process.env.EMAIL_FROM || '"Personal Project Milestone Tracker" <notifications@collegemilestones.edu>';
-  const activeTransporter = getTransporter();
+  let activeTransporter = getTransporter();
 
   if (activeTransporter) {
     try {
       const info = await activeTransporter.sendMail({
         from,
-        to,
+        to: cleanTo,
         subject,
         text: text || html.replace(/<[^>]+>/g, ''),
         html
       });
-      console.log(`[Email Sent] MessageId: ${info.messageId} to ${to}`);
+      console.log(`[Email Sent] MessageId: ${info.messageId} to ${cleanTo}`);
       return { success: true, messageId: info.messageId };
     } catch (err) {
-      console.error(`[Email Error] Failed to send email to ${to}:`, err.message);
+      console.error(`[Email Error] Failed to send email to ${cleanTo}:`, err.message);
+      // Reset transporter so connection refreshes on next call
+      transporter = null;
       return { success: false, error: err.message };
     }
   } else {
     console.log(`\n================== [SIMULATED EMAIL DISPATCH] ==================`);
-    console.log(`To: ${to}`);
+    console.log(`To: ${cleanTo}`);
     console.log(`Subject: ${subject}`);
     console.log(`Body:\n${text || html.replace(/<[^>]+>/g, '')}`);
     console.log(`================================================================\n`);
@@ -192,7 +210,7 @@ const generateProfessionalEmailTemplate = ({
 /**
  * Format faculty project assignment email
  */
-const sendProjectAssignedEmail = async ({ facultyEmail, facultyName, projectName, teamLeaderName, teamMembers = [], deadline, projectId }) => {
+const sendProjectAssignedEmail = async ({ facultyEmail, facultyName, projectName, domain, teamLeaderName, teamMembers = [], deadline, projectId, department, year }) => {
   const appUrl = process.env.APP_URL || 'http://localhost:5000';
   const projectLink = `${appUrl}/faculty/index.html?projectId=${projectId}`;
 
@@ -201,25 +219,27 @@ const sendProjectAssignedEmail = async ({ facultyEmail, facultyName, projectName
 
   const html = generateProfessionalEmailTemplate({
     headerTitle: 'Academic Faculty Mentorship Portal',
-    headerSubtitle: 'New Project Allocation Alert',
+    headerSubtitle: 'New Project Allocation & Approval Request',
     recipientName: `Prof. ${facultyName}`,
-    badgeText: 'New Project Assigned',
+    badgeText: 'New Project Submission',
     badgeColor: '#2563eb',
     badgeBg: '#eff6ff',
     title: subject,
-    summaryText: `A new student project has been submitted and assigned to you for mentorship, progress reviews, and milestone evaluation.`,
+    summaryText: `A student team led by ${teamLeaderName} has submitted a new project proposal and assigned you as their faculty guide and mentor for milestone supervision.`,
     details: [
       { label: 'Project Name', value: projectName, highlight: true },
+      { label: 'Domain / Topic', value: domain || 'General' },
       { label: 'Team Leader', value: teamLeaderName },
-      { label: 'Team Members', value: membersList || 'Team members assigned' },
+      { label: 'Team Members', value: membersList || 'Assigned team members' },
+      { label: 'Department & Year', value: `${department || 'CSE'} • ${year || 'III Year'}` },
       { label: 'Final Deadline', value: new Date(deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
     ],
     actionSteps: [
-      'Log into the Faculty Portal to review project domain and timeline.',
-      'Check upcoming milestones and schedule evaluation reviews with the student team.',
-      'Provide continuous guidance through the milestone tracking workspace.'
+      'Log into the Faculty Portal to review the project scope and milestone breakdown.',
+      'Accept & Approve the project or provide revision remarks.',
+      'Monitor student progress and evaluate milestone deliverables.'
     ],
-    buttonText: 'View Project in Faculty Portal',
+    buttonText: 'Review & Approve in Faculty Portal',
     buttonUrl: projectLink,
     alertType: 'info'
   });
@@ -227,8 +247,89 @@ const sendProjectAssignedEmail = async ({ facultyEmail, facultyName, projectName
   return sendEmail({ to: facultyEmail, subject, html });
 };
 
+/**
+ * Format team member project addition email
+ */
+const sendTeamMemberAddedEmail = async ({ studentEmail, studentName, projectName, domain, teamLeaderName, facultyName, deadline, projectId, department, year }) => {
+  const appUrl = process.env.APP_URL || 'http://localhost:5000';
+  const projectLink = `${appUrl}/student/index.html?projectId=${projectId}`;
+
+  const subject = `👥 Added to New Project Team: "${projectName}"`;
+
+  const html = generateProfessionalEmailTemplate({
+    headerTitle: 'Academic Project Milestone Supervision Portal',
+    headerSubtitle: 'Student Team Allocation Alert',
+    recipientName: studentName || 'Student Member',
+    badgeText: 'Team Member Added',
+    badgeColor: '#059669',
+    badgeBg: '#ecfdf5',
+    title: subject,
+    summaryText: `Your peer ${teamLeaderName} has added you to their academic project team for the ongoing semester.`,
+    details: [
+      { label: 'Project Name', value: projectName, highlight: true },
+      { label: 'Domain / Topic', value: domain || 'General' },
+      { label: 'Team Leader', value: teamLeaderName },
+      { label: 'Faculty Guide', value: `Prof. ${facultyName}` },
+      { label: 'Final Deadline', value: new Date(deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
+      { label: 'Department / Year', value: `${department || 'CSE'} (${year || 'III Year'})` }
+    ],
+    actionSteps: [
+      'Log into the Student Portal to view project milestones and allocated tasks.',
+      'Coordinate with your team leader for workload breakdown and initial research.',
+      'Track task due dates to maintain on-time milestone delivery.'
+    ],
+    buttonText: 'Open Project in Student Portal',
+    buttonUrl: projectLink,
+    alertType: 'success'
+  });
+
+  return sendEmail({ to: studentEmail, subject, html });
+};
+
+/**
+ * Format project creation confirmation email for Team Leader
+ */
+const sendProjectCreationConfirmationEmail = async ({ leaderEmail, leaderName, projectName, domain, facultyName, teamMembers = [], deadline, projectId, department, year }) => {
+  const appUrl = process.env.APP_URL || 'http://localhost:5000';
+  const projectLink = `${appUrl}/student/index.html?projectId=${projectId}`;
+
+  const subject = `🚀 Project Proposal Submitted: "${projectName}"`;
+  const membersList = teamMembers.map(m => `${m.name} (${m.registerNumber || 'Student'})`).join(', ');
+
+  const html = generateProfessionalEmailTemplate({
+    headerTitle: 'Academic Project Milestone Supervision Portal',
+    headerSubtitle: 'Project Submission Confirmation',
+    recipientName: leaderName || 'Team Leader',
+    badgeText: 'Project Submitted',
+    badgeColor: '#2563eb',
+    badgeBg: '#eff6ff',
+    title: subject,
+    summaryText: `Your project proposal "${projectName}" has been successfully created and submitted to Prof. ${facultyName} for review and approval.`,
+    details: [
+      { label: 'Project Name', value: projectName, highlight: true },
+      { label: 'Domain / Topic', value: domain || 'General' },
+      { label: 'Assigned Faculty Guide', value: `Prof. ${facultyName}` },
+      { label: 'Team Members', value: membersList || 'Team members assigned' },
+      { label: 'Department / Year', value: `${department || 'CSE'} • ${year || 'III Year'}` },
+      { label: 'Final Deadline', value: new Date(deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
+    ],
+    actionSteps: [
+      'Your faculty guide has been notified via email to review and approve your submission.',
+      'Once approved, start defining milestones and assigning tasks to your team members.',
+      'Maintain continuous communication with your team and faculty mentor.'
+    ],
+    buttonText: 'View Project in Student Portal',
+    buttonUrl: projectLink,
+    alertType: 'info'
+  });
+
+  return sendEmail({ to: leaderEmail, subject, html });
+};
+
 module.exports = {
   sendEmail,
   sendProjectAssignedEmail,
+  sendTeamMemberAddedEmail,
+  sendProjectCreationConfirmationEmail,
   generateProfessionalEmailTemplate
 };

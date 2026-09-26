@@ -247,7 +247,14 @@ const Projects = {
 
     // Populate facultyId
     if (project.facultyId) {
-      const fac = await Faculty.findById(project.facultyId?._id || project.facultyId);
+      const facId = project.facultyId?._id || project.facultyId?.id || project.facultyId;
+      let fac = await Faculty.findById(facId);
+      if (!fac && typeof facId === 'string') {
+        fac = await Faculty.findByFacultyId(facId);
+      }
+      if (!fac && typeof facId === 'string') {
+        fac = await Faculty.findOne(f => String(f.id) === facId || String(f._id) === facId || (f.facultyId && f.facultyId.toUpperCase() === facId.toUpperCase()));
+      }
       if (fac) populated.facultyId = fac;
     }
 
@@ -260,15 +267,26 @@ const Projects = {
       populated.teamMemberIds = await Promise.all(
         project.teamMemberIds.map(async m => {
           if (m && typeof m === 'object' && m.name) {
+            let email = m.email || '';
+            let phone = m.phone || '';
+            let realId = m._id || m.id || m.registerNumber;
+            if ((!email || !phone) && m.registerNumber) {
+              const u = await Users.findOne(usr => usr.registerNumber && usr.registerNumber.toUpperCase() === String(m.registerNumber).toUpperCase());
+              if (u) {
+                email = email || u.email || '';
+                phone = phone || u.phone || '';
+                realId = u.id || u._id || realId;
+              }
+            }
             return {
-              _id: m._id || m.id || m.registerNumber,
-              id: m.id || m._id || m.registerNumber,
+              _id: realId,
+              id: realId,
               name: m.name,
               registerNumber: m.registerNumber || '',
               department: m.department || populated.department,
               year: m.year || populated.year,
-              email: m.email || '',
-              phone: m.phone || '',
+              email,
+              phone,
               isLeader: Boolean(m.isLeader)
             };
           }
@@ -647,6 +665,9 @@ const Notifications = {
     }
 
     return unique;
+  },
+  async listAll(predicate = null) {
+    return firestoreHelper.list('notifications', predicate);
   },
   async findOne(predicate) {
     const list = await firestoreHelper.list('notifications');

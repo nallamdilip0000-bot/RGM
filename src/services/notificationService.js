@@ -6,11 +6,10 @@ const { sendEmail, generateProfessionalEmailTemplate } = require('./emailService
  * with strict duplicate prevention and user preference checks using Firebase.
  *
  * Rules:
- * 1. Direct operational events (e.g., Team Leader assigning tasks 'TASK_ASSIGNED')
- *    are dispatched immediately for EVERY task without daily cap or gap interval spacing.
+ * 1. Direct operational events (e.g., Project Creation, Member Addition, Faculty Allocation, Task Assignment)
+ *    are dispatched immediately with live email delivery.
  * 2. Automated deadline reminders ('TASK_REMINDER_*', 'MILESTONE_REMINDER_*')
- *    are scheduled for 4 daily checkpoints (Morning, Midday, Evening, Night) and
- *    capped at 4 deadline emails per student per day.
+ *    are scheduled for 4 daily checkpoints (Morning, Midday, Evening, Night).
  */
 const notifyUser = async ({
   userId,
@@ -33,8 +32,10 @@ const notifyUser = async ({
   force = false
 }) => {
   const results = { inApp: false, email: false };
-  const effectiveUserId = userId || userEmail || userPhone || `usr_${Date.now()}`;
-  const cleanEmail = userEmail ? userEmail.trim().toLowerCase() : null;
+  const cleanEmail = userEmail && typeof userEmail === 'string' && userEmail.trim().length > 0
+    ? userEmail.trim().toLowerCase()
+    : null;
+  const effectiveUserId = userId || cleanEmail || userPhone || `usr_${Date.now()}`;
 
   // Determine notification category
   const isDirectAction = explicitDirectAction !== null
@@ -43,6 +44,8 @@ const notifyUser = async ({
         type.startsWith('TASK_ASSIGNED') ||
         type.startsWith('ADDED_TO_PROJECT') ||
         type.startsWith('PROJECT_ASSIGNED') ||
+        type.startsWith('PROJECT_CREATED') ||
+        type.startsWith('PROJECT_SUBMITTED') ||
         type.startsWith('PROJECT_APPROVED') ||
         type.startsWith('PROJECT_REJECTED') ||
         type.startsWith('PROJECT_STATUS') ||
@@ -64,24 +67,26 @@ const notifyUser = async ({
         type.includes('DEADLINE')
       ));
 
-  // Default preferences fallback if not passed
+  // Default preferences fallback if not passed (default to true for direct project actions)
   const prefs = {
-    inApp: preferences.inApp !== false,
-    email: preferences.email !== false
+    inApp: preferences?.inApp !== false,
+    email: preferences?.email !== false
   };
 
   // 1. IN-APP NOTIFICATION
   if (prefs.inApp) {
     try {
-      // Check deduplication
-      const existing = await Notifications.findOne(n =>
-        (String(n.userId) === String(effectiveUserId) || (cleanEmail && n.recipientEmail === cleanEmail)) &&
-        n.type === type &&
-        n.channel === 'in-app' &&
-        (!projectId || String(n.projectId) === String(projectId)) &&
-        (!milestoneId || String(n.milestoneId) === String(milestoneId)) &&
-        (!taskId || String(n.taskId) === String(taskId))
-      );
+      let existing = null;
+      if (!force) {
+        existing = await Notifications.findOne(n =>
+          (String(n.userId) === String(effectiveUserId) || (cleanEmail && n.recipientEmail === cleanEmail)) &&
+          n.type === type &&
+          n.channel === 'in-app' &&
+          (!projectId || String(n.projectId) === String(projectId)) &&
+          (!milestoneId || String(n.milestoneId) === String(milestoneId)) &&
+          (!taskId || String(n.taskId) === String(taskId))
+        );
+      }
 
       if (!existing || force) {
         const notif = await Notifications.create({
@@ -112,19 +117,20 @@ const notifyUser = async ({
   // 2. EMAIL NOTIFICATION
   if (prefs.email && cleanEmail) {
     try {
-      const existing = await Notifications.findOne(n =>
-        (String(n.userId) === String(effectiveUserId) || n.recipientEmail === cleanEmail) &&
-        n.type === type &&
-        n.channel === 'email' &&
-        ['sent', 'simulated'].includes(n.status) &&
-        (!projectId || String(n.projectId) === String(projectId)) &&
-        (!milestoneId || String(n.milestoneId) === String(milestoneId)) &&
-        (!taskId || String(n.taskId) === String(taskId))
-      );
+      let existing = null;
+      if (!force) {
+        existing = await Notifications.findOne(n =>
+          (String(n.userId) === String(effectiveUserId) || n.recipientEmail === cleanEmail) &&
+          n.type === type &&
+          n.channel === 'email' &&
+          ['sent', 'simulated'].includes(n.status) &&
+          (!projectId || String(n.projectId) === String(projectId)) &&
+          (!milestoneId || String(n.milestoneId) === String(milestoneId)) &&
+          (!taskId || String(n.taskId) === String(taskId))
+        );
+      }
 
       if (!existing || force) {
-        // Slot-based deduplication (type tag: _YYYY-MM-DD_SLOT_X) ensures exactly 4 scheduled checkpoints per day
-        // Only throttle if a student has received more than 16 reminder emails today (generous ceiling for heavy task loads)
         if (isDeadlineReminder && !force) {
           const maxDailyDeadlineEmails = parseInt(process.env.MAX_DAILY_DEADLINE_EMAILS || '24', 10);
           const startOfToday = new Date();
@@ -136,13 +142,12 @@ const notifyUser = async ({
             return results;
           }
         }
-        // Direct actions (e.g. TASK_ASSIGNED by team leader) bypass daily limits and gap spacing!
 
         // Build professional HTML if not custom passed
         const finalHtml = emailHtml || generateProfessionalEmailTemplate({
           recipientName: userName || 'Student',
-          badgeText: isDirectAction ? 'Task Update' : 'Academic Alert',
-          title: title || 'Project Update',
+          badgeText: isDirectAction ? 'Project Update' : 'Academic Alert',
+          title: title || 'Project Notification',
           summaryText: message,
           details: [
             { label: 'Notification', value: title || 'Notice' },
@@ -155,6 +160,7 @@ const notifyUser = async ({
           alertType: 'info'
         });
 
+        console.log(`[NotificationService] Sending email to ${cleanEmail} for "${title || 'Alert'}"...`);
         const emailRes = await sendEmail({
           to: cleanEmail,
           subject: title || 'Academic Milestone Tracker Alert',
@@ -179,13 +185,15 @@ const notifyUser = async ({
           slot: slot || null,
           status: emailRes.success ? (emailRes.simulated ? 'simulated' : 'sent') : 'failed'
         });
-        results.email = true;
+        results.email = Boolean(emailRes.success);
       } else {
         console.log(`[Email Deduplicated] Notification of type "${type}" already sent for ${cleanEmail}. Skipping duplicate.`);
       }
     } catch (err) {
       console.error('[NotificationService] Email dispatch failed:', err.message);
     }
+  } else if (!cleanEmail) {
+    console.warn(`[NotificationService] No email address provided for user ${userName || userId}. In-app only.`);
   }
 
   return results;

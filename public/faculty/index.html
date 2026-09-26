@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty Portal - Personal Project Milestone Tracker</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="icon" href="/images/college-logo.png">
+</head>
+<body>
+
+  <div class="dashboard-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-wrap">
+          <img src="/images/college-logo.png" alt="RGMCET" class="sidebar-college-logo">
+        </div>
+        <div class="sidebar-title-box">
+          <h2>Project Tracker</h2>
+          <span class="sidebar-role-pill role-faculty">Faculty Guide</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item active" data-tab="tabDashboard">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-item" data-tab="tabProjects">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+          <span>My Projects</span>
+        </a>
+        <a class="nav-item" data-tab="tabPendingEval">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          <span>Pending Evaluations</span>
+        </a>
+        <a class="nav-item" data-tab="tabCompletedEval">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></span>
+          <span>Completed Evaluations</span>
+        </a>
+        <a class="nav-item" data-tab="tabDocuments">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+          <span>Student Submissions</span>
+        </a>
+        <a class="nav-item" data-tab="tabAttendance">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg></span>
+          <span>Mentorship Attendance</span>
+        </a>
+        <a class="nav-item" data-tab="tabStudents">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span>Students</span>
+        </a>
+        <a class="nav-item" data-tab="tabNotifications">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+          <span>Notifications</span>
+        </a>
+        <a class="nav-item" data-tab="tabProfile">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <span>Profile</span>
+        </a>
+        <a class="nav-item" data-tab="tabSettings">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          <span>Settings</span>
+        </a>
+        <a class="nav-item" id="navLogout" style="margin-top: auto; color: #f87171;">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+          <span>Logout</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="user-avatar" id="userAvatar" style="background: #059669;">FC</div>
+          <div class="user-meta">
+            <div class="user-meta-name" id="userName">Faculty Guide</div>
+            <div class="user-meta-role" id="userDept">Computer Science</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle navigation">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="topbar-title">
+            <h1 id="pageHeading">Faculty Dashboard</h1>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Notification Bell -->
+          <div class="notif-bell-wrapper">
+            <button class="notif-bell-btn" id="notifBellBtn" title="Notifications" aria-label="Notifications">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
+            </button>
+            <div class="notif-dropdown" id="notifDropdown">
+              <div class="notif-dropdown-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #0f172a;">Notifications</h4>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-sm btn-secondary" id="markAllReadBtn" style="font-size: 11px; padding: 3px 8px;" title="Mark all as read">Mark Read</button>
+                  <button class="btn btn-sm btn-danger" id="clearAllNotifBtn" style="font-size: 11px; padding: 3px 8px; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca;" title="Clear all notifications">Clear All</button>
+                </div>
+              </div>
+              <div class="notif-dropdown-list" id="notifList"></div>
+            </div>
+          </div>
+
+          <div style="font-size: 13px; font-weight: 600; color: #475569;">
+            Department of CSE &bull; Mentorship
+          </div>
+        </div>
+      </header>
+
+      <div class="page-body">
+
+        <!-- ==========================================
+             TAB 1: FACULTY DASHBOARD OVERVIEW
+             ========================================== -->
+        <section class="page-tab-content active" id="tabDashboard">
+          <!-- 5 Faculty KPI Cards -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-info">
+                <h4>Total Assigned</h4>
+                <div class="stat-value" id="cardAssignedProjects">0</div>
+              </div>
+              <div class="stat-icon-wrapper" style="background: #eff6ff; color: #2563eb;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <h4>Active Projects</h4>
+                <div class="stat-value" id="cardActiveProjects">0</div>
+              </div>
+              <div class="stat-icon-wrapper" style="background: #ecfdf5; color: #10b981;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <h4>Completed Projects</h4>
+                <div class="stat-value" id="cardCompletedProjects">0</div>
+              </div>
+              <div class="stat-icon-wrapper" style="background: #f5f3ff; color: #7c3aed;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <h4>Pending Evaluation</h4>
+                <div class="stat-value" id="cardPendingEvaluations">0</div>
+              </div>
+              <div class="stat-icon-wrapper" style="background: #fffbeb; color: #d97706;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <h4>Average Marks</h4>
+                <div class="stat-value" id="cardAvgMarks">0 / 100</div>
+              </div>
+              <div class="stat-icon-wrapper" style="background: #ecfeff; color: #0891b2;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deadline Extension Requests Queue: Student Changed Deadline Post Faculty Offline Meeting -->
+          <div class="card" id="deadlineRequestsQueueCard" style="display: none; border-left: 4px solid #0284c7; margin-bottom: 24px;">
+            <div class="card-header" style="background: #f0f9ff; border-bottom: 1px solid #bae6fd; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 class="card-title" style="color: #0369a1; display: flex; align-items: center; gap: 8px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Pending Milestone &amp; Task Deadline Requests
+                </h3>
+                <p style="font-size: 12px; color: #0284c7; margin-top: 2px;">Students modified deadlines following offline consultation. Approve or reject; rejection strictly preserves the previous allocated date.</p>
+              </div>
+              <span class="badge" id="pendingDeadlineCount" style="background: #0284c7; color: #ffffff; font-weight: 700; padding: 4px 10px; border-radius: 9999px;">0 Requests</span>
+            </div>
+            <div class="card-body">
+              <div id="deadlineRequestsList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;"></div>
+            </div>
+          </div>
+
+          <!-- Quick Review Section: Submitted Projects Waiting for Approval -->
+          <div class="card" id="approvalQueueCard" style="display: none; border-left: 4px solid #f59e0b;">
+            <div class="card-header">
+              <h3 class="card-title" style="color: #b45309;">Projects Awaiting Your Approval</h3>
+            </div>
+            <div class="card-body">
+              <div id="approvalQueueList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;"></div>
+            </div>
+          </div>
+
+          <!-- Assigned Projects Grid -->
+          <div class="card">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h3 class="card-title">Assigned Projects Overview</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Projects assigned to you categorized by Academic Year and Department</p>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <select id="overviewYearFilter" class="form-select" style="max-width: 150px; font-size: 12px; padding: 6px 10px;" onchange="renderFacultyProjectCards()">
+                  <option value="">All Academic Years</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+                <button class="btn btn-outline-primary btn-sm" onclick="switchTab('tabProjects')">View All in Table</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="facultyProjectsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                <!-- Project cards loaded dynamically -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 2: MY PROJECTS
+             ========================================== -->
+        <section class="page-tab-content" id="tabProjects">
+          <div class="card">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h3 class="card-title">All Mentored Projects</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Filter projects separately by Academic Year, Department, and Status</p>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <select id="filterFacProjYear" class="form-select" style="max-width: 150px; font-size: 12px; padding: 6px 10px;" onchange="renderFacultyProjectsTable()">
+                  <option value="">All Academic Years</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+                <select id="filterFacProjDept" class="form-select" style="max-width: 170px; font-size: 12px; padding: 6px 10px;" onchange="renderFacultyProjectsTable()">
+                  <option value="">All Departments</option>
+                  <option value="CSE">CSE</option>
+                  <option value="CSE (AI & ML)">CSE (AI &amp; ML)</option>
+                  <option value="CSE (AI)">CSE (AI)</option>
+                  <option value="CSE (Data Science)">CSE (Data Science)</option>
+                  <option value="CSE (Cyber Security)">CSE (Cyber Security)</option>
+                  <option value="IT">IT</option>
+                  <option value="ECE">ECE</option>
+                  <option value="EEE">EEE</option>
+                  <option value="MECH">MECH</option>
+                  <option value="CIVIL">CIVIL</option>
+                </select>
+                <select id="filterFacProjStatus" class="form-select" style="max-width: 140px; font-size: 12px; padding: 6px 10px;" onchange="renderFacultyProjectsTable()">
+                  <option value="">All Status</option>
+                  <option value="Submitted">Submitted</option>
+                  <option value="Approved">Approved</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Delayed">Delayed</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="data-table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Project Title</th>
+                      <th>Academic Year</th>
+                      <th>Department</th>
+                      <th>Team Leader</th>
+                      <th>Team Size</th>
+                      <th>Deadline</th>
+                      <th>Progress</th>
+                      <th>Status</th>
+                      <th>Evaluation</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="facultyProjectsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 3: PENDING EVALUATIONS
+             ========================================== -->
+        <section class="page-tab-content" id="tabPendingEval">
+          <div class="card">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h3 class="card-title">Projects Pending Evaluation</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Evaluate 2nd Year and 3rd Year projects with separate rubric sheets</p>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <select id="filterPendingEvalYear" class="form-select" style="max-width: 150px; font-size: 12px; padding: 6px 10px;" onchange="renderPendingEvaluations()">
+                  <option value="">All Academic Years</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body" id="pendingEvalContainer"></div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 4: COMPLETED EVALUATIONS
+             ========================================== -->
+        <section class="page-tab-content" id="tabCompletedEval">
+          <div class="card">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h3 class="card-title">Completed Evaluations</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Graded projects and rubrics organized by student year</p>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <select id="filterCompletedEvalYear" class="form-select" style="max-width: 150px; font-size: 12px; padding: 6px 10px;" onchange="renderCompletedEvaluations()">
+                  <option value="">All Academic Years</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body" id="completedEvalContainer"></div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB: STUDENT SUBMISSIONS / DELIVERABLES
+             ========================================== -->
+        <section class="page-tab-content" id="tabDocuments">
+          <div class="card">
+            <div class="card-header" style="flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 class="card-title">Student Submissions &amp; Project Files</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Research papers, PPTs, synopsis, and project reports uploaded by your student teams</p>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <select id="facultyDocProjectFilter" class="form-select" style="max-width: 240px; font-size: 12.5px; padding: 6px 10px;">
+                  <option value="ALL">All Assigned Projects</option>
+                </select>
+                <select id="facultyDocCategoryFilter" class="form-select" style="max-width: 180px; font-size: 12.5px; padding: 6px 10px;">
+                  <option value="ALL">All Categories</option>
+                  <option value="Research Paper">Research Paper</option>
+                  <option value="Presentation (PPT)">Presentation (PPT)</option>
+                  <option value="Project Report">Project Report</option>
+                  <option value="Synopsis / Survey">Synopsis / Survey</option>
+                  <option value="Code & Dataset (ZIP)">Code / Dataset</option>
+                  <option value="Other">Other</option>
+                </select>
+                <button class="btn btn-sm btn-outline-primary" id="btnRefreshFacultyDocs" style="font-size: 12px; padding: 6px 12px;">🔄 Refresh</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #475569;">
+                  <span style="font-size: 18px;">📄</span>
+                  <span>Inspect, preview, and download documents uploaded by your student project batches.</span>
+                </div>
+                <div style="font-size: 12px; font-weight: 600; color: #059669;" id="facultyDocsCountBadge">0 files available</div>
+              </div>
+
+              <div id="facultyDocumentsListContainer">
+                <!-- Submissions loaded via JS -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB: MENTORSHIP MEETINGS & ATTENDANCE (CONFIDENTIAL GUIDE LOG)
+             ========================================== -->
+        <section class="page-tab-content" id="tabAttendance">
+          <div class="card">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 class="card-title">Mentorship Review Meetings &amp; Guide Attendance</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Record lab reviews, track presence, and view multi-day student totals (Present / Absent / % Attendance) across academic years</p>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <select id="filterAttendanceYear" class="form-select" style="max-width: 150px; font-size: 12px; padding: 6px 10px;" onchange="renderFacultyAttendanceTable()">
+                  <option value="ALL">All Batches / Years</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+                <select id="filterAttendanceProject" class="form-select" style="max-width: 180px; font-size: 12px; padding: 6px 10px;" onchange="renderFacultyAttendanceTable()">
+                  <option value="ALL">All Mentored Projects</option>
+                </select>
+                <button class="btn btn-outline-primary btn-sm" onclick="exportAttendancePDF()" style="font-size: 12px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 4px;" title="Print or Save Official Attendance PDF Report">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  Export PDF
+                </button>
+                <button class="btn btn-outline-success btn-sm" onclick="exportAttendanceExcel()" style="font-size: 12px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 4px; border-color: #10b981; color: #059669;" title="Download Excel / CSV Attendance Spreadsheet">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Export Excel
+                </button>
+                <button class="btn btn-faculty btn-sm" id="btnOpenLogMeetingModal" onclick="openLogMeetingModal()">+ Log Review Meeting</button>
+              </div>
+            </div>
+
+            <!-- View switcher tabs -->
+            <div style="padding: 10px 20px 0 20px; border-bottom: 1px solid var(--border-color); display: flex; gap: 10px; background: #fafafa;">
+              <button id="btnAttendanceViewLogs" class="btn btn-sm btn-primary" onclick="switchAttendanceSubView('logs')" style="font-size: 12px; padding: 6px 14px; border-radius: 6px 6px 0 0; border-bottom: none;">
+                📅 Meeting Logs View
+              </button>
+              <button id="btnAttendanceViewSummary" class="btn btn-sm btn-outline-secondary" onclick="switchAttendanceSubView('summary')" style="font-size: 12px; padding: 6px 14px; border-radius: 6px 6px 0 0; border-bottom: none;">
+                📊 Student Attendance Totals (Present &amp; Absent)
+              </button>
+            </div>
+
+            <div class="card-body">
+              <!-- Sub-view 1: Meeting Logs View -->
+              <div id="attendanceSubViewLogs">
+                <div class="data-table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Meeting Date</th>
+                        <th>Project &amp; Batch</th>
+                        <th>Discussion / Review Topic</th>
+                        <th>Student Attendance Breakdown</th>
+                        <th>Guide Notes</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="facultyAttendanceTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Sub-view 2: Student Cumulative Summary View -->
+              <div id="attendanceSubViewSummary" style="display: none;">
+                <div class="data-table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Student Name &amp; Reg No</th>
+                        <th>Academic Batch</th>
+                        <th>Project Title &amp; Domain</th>
+                        <th>Total Reviews</th>
+                        <th>Total Present</th>
+                        <th>Total Absent</th>
+                        <th>Attendance %</th>
+                        <th>Mentorship Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="facultyAttendanceSummaryTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 5: STUDENTS DIRECTORY
+             ========================================== -->
+        <section class="page-tab-content" id="tabStudents">
+          <div class="card">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h3 class="card-title">Mentored Students Directory</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">View student details separately by Year (e.g. 2nd Year vs 3rd Year batches) and Branch</p>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input type="text" id="searchStudentInput" class="form-input" placeholder="Search student name or Reg No..." style="max-width: 220px; font-size: 12px; padding: 6px 10px;" oninput="renderStudentsDirectory()">
+                <select id="filterStudentYear" class="form-select" style="max-width: 150px; font-size: 12px; padding: 6px 10px;" onchange="renderStudentsDirectory()">
+                  <option value="">All Academic Years</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+                <select id="filterStudentDept" class="form-select" style="max-width: 170px; font-size: 12px; padding: 6px 10px;" onchange="renderStudentsDirectory()">
+                  <option value="">All Departments</option>
+                  <option value="CSE">CSE</option>
+                  <option value="CSE (AI & ML)">CSE (AI &amp; ML)</option>
+                  <option value="CSE (AI)">CSE (AI)</option>
+                  <option value="CSE (Data Science)">CSE (Data Science)</option>
+                  <option value="CSE (Cyber Security)">CSE (Cyber Security)</option>
+                  <option value="IT">IT</option>
+                  <option value="ECE">ECE</option>
+                  <option value="EEE">EEE</option>
+                  <option value="MECH">MECH</option>
+                  <option value="CIVIL">CIVIL</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="data-table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Student Name</th>
+                      <th>Register Number</th>
+                      <th>Academic Year</th>
+                      <th>Department</th>
+                      <th>Assigned Project</th>
+                      <th>Role</th>
+                      <th>Contact (Email &amp; Phone)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mentoredStudentsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 6: NOTIFICATIONS
+             ========================================== -->
+        <section class="page-tab-content" id="tabNotifications">
+          <div class="card">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <h3 class="card-title">Faculty Notification Alerts</h3>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-outline-primary btn-sm" id="btnFacultyMarkAllRead">Mark All as Read</button>
+                <button class="btn btn-danger btn-sm" id="btnFacultyClearAll" style="background: #ef4444; color: white;">Clear All</button>
+              </div>
+            </div>
+            <div class="card-body" id="facultyNotifList"></div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 7: PROFILE
+             ========================================== -->
+        <section class="page-tab-content" id="tabProfile">
+          <div class="card" style="max-width: 600px;">
+            <div class="card-header">
+              <h3 class="card-title">Faculty Profile</h3>
+            </div>
+            <div class="card-body">
+              <form id="facultyProfileForm">
+                <div class="form-group">
+                  <label class="form-label">Full Name</label>
+                  <input type="text" id="facProfName" class="form-input" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Faculty ID</label>
+                  <input type="text" id="facProfId" class="form-input" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Email</label>
+                  <input type="email" id="facProfEmail" class="form-input" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="facProfDept">Department</label>
+                  <select id="facProfDept" class="form-select">
+                    <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+                    <option value="CSE (AI & ML)">CSE (AI & ML)</option>
+                    <option value="CSE (AI)">CSE (AI)</option>
+                    <option value="CSE (Data Science)">CSE (Data Science)</option>
+                    <option value="CSE (Cyber Security)">CSE (Cyber Security)</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Electronics & Communication">Electronics & Communication</option>
+                    <option value="Electrical & Electronics">Electrical & Electronics</option>
+                    <option value="Mechanical Engineering">Mechanical Engineering</option>
+                    <option value="Civil Engineering">Civil Engineering</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Designation</label>
+                  <input type="text" id="facProfDesignation" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone Number</label>
+                  <input type="tel" id="facProfPhone" class="form-input">
+                </div>
+                <button type="submit" class="btn btn-faculty">Update Profile</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 8: SETTINGS
+             ========================================== -->
+        <section class="page-tab-content" id="tabSettings">
+          <div class="card" style="max-width: 680px;">
+            <div class="card-header">
+              <h3 class="card-title">Faculty Notification Preferences</h3>
+            </div>
+            <div class="card-body">
+              <form id="facultySettingsForm">
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+                  <label style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>Email Alerts (New submissions, Milestones)</span>
+                    <input type="checkbox" id="facPrefEmail" style="transform: scale(1.3);">
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>In-App Notifications</span>
+                    <input type="checkbox" id="facPrefInApp" style="transform: scale(1.3);">
+                  </label>
+                </div>
+                <button type="submit" class="btn btn-faculty">Save Notification Preferences</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODAL 1: VIEW PROJECT DETAILS
+       (Information, Team Members, Milestones, Tasks)
+       ========================================== -->
+  <div class="modal-overlay" id="viewProjectModal">
+    <div class="modal-container modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title" id="viewProjModalTitle">Project Details</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <div class="modal-body" id="viewProjModalBody">
+        <!-- Injected details -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close>Close</button>
+        <button type="button" class="btn btn-primary" id="btnModalGoEvaluate">Evaluate Project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 2: PROJECT APPROVAL / REJECTION
+       ========================================== -->
+  <div class="modal-overlay" id="reviewProjectModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Review Project Submission</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="reviewProjectForm">
+        <div class="modal-body">
+          <input type="hidden" id="reviewProjectId">
+          <h4 id="reviewProjName" style="margin-bottom: 8px; font-size: 16px;"></h4>
+          <p id="reviewProjLeader" style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;"></p>
+
+          <div class="form-group">
+            <label class="form-label">Decision *</label>
+            <select id="reviewDecision" class="form-select" required>
+              <option value="Approved">Approve Project</option>
+              <option value="Rejected">Reject Project</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="rejectionReasonBox" style="display: none;">
+            <label class="form-label">Rejection Reason * (Mandatory for rejection)</label>
+            <textarea id="rejectionReasonText" class="form-textarea" rows="3" placeholder="State reason for rejection..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitReview">Submit Decision</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 3: PROJECT EVALUATION & INDIVIDUAL STUDENT MARKS
+       (Rubric: 30+25+15+20+10 = 100 max + Individual Member Marks & Feedback)
+       ========================================== -->
+  <div class="modal-overlay" id="evaluateProjectModal">
+    <div class="modal-container modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Project Evaluation &amp; Individual Grading</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="evaluateProjectForm">
+        <div class="modal-body">
+          <input type="hidden" id="evalProjectId">
+          <div style="margin-bottom: 16px;">
+            <h4 id="evalProjName" style="font-size: 18px; margin-bottom: 4px;"></h4>
+            <p id="evalTeamInfo" style="font-size: 13px; color: var(--text-muted);"></p>
+          </div>
+
+          <!-- Section A: Standard Rubric Evaluation -->
+          <div class="card" style="border: 1px solid var(--border-color); margin-bottom: 20px;">
+            <div class="card-header" style="background: #f8fafc;">
+              <h4 style="font-size: 15px;">A. Standard Evaluation Rubric (Total: 100 Marks Max)</h4>
+              <span class="rubric-total-badge" id="evalTotalBadge">0 / 100</span>
+            </div>
+            <div class="card-body">
+              <div class="rubric-box">
+                <div class="rubric-row">
+                  <span class="rubric-label">1. Project Work (Max 30)</span>
+                  <div class="rubric-input-wrap">
+                    <input type="number" id="rubricProjectWork" class="form-input rubric-input" min="0" max="30" value="0" required>
+                    <span>/ 30</span>
+                  </div>
+                </div>
+
+                <div class="rubric-row">
+                  <span class="rubric-label">2. Implementation (Max 25)</span>
+                  <div class="rubric-input-wrap">
+                    <input type="number" id="rubricImplementation" class="form-input rubric-input" min="0" max="25" value="0" required>
+                    <span>/ 25</span>
+                  </div>
+                </div>
+
+                <div class="rubric-row">
+                  <span class="rubric-label">3. Documentation (Max 15)</span>
+                  <div class="rubric-input-wrap">
+                    <input type="number" id="rubricDocumentation" class="form-input rubric-input" min="0" max="15" value="0" required>
+                    <span>/ 15</span>
+                  </div>
+                </div>
+
+                <div class="rubric-row">
+                  <span class="rubric-label">4. Presentation (Max 20)</span>
+                  <div class="rubric-input-wrap">
+                    <input type="number" id="rubricPresentation" class="form-input rubric-input" min="0" max="20" value="0" required>
+                    <span>/ 20</span>
+                  </div>
+                </div>
+
+                <div class="rubric-row" style="margin-bottom: 0;">
+                  <span class="rubric-label">5. Team Participation (Max 10)</span>
+                  <div class="rubric-input-wrap">
+                    <input type="number" id="rubricParticipation" class="form-input rubric-input" min="0" max="10" value="0" required>
+                    <span>/ 10</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 14px;">
+                <label class="form-label" for="evalOverallFeedback">Overall Project Feedback</label>
+                <textarea id="evalOverallFeedback" class="form-textarea" rows="2" placeholder="General remarks, strengths, areas for technical improvement..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section B: Individual Student Marks & Feedback -->
+          <div class="card" style="border: 1px solid var(--border-color);">
+            <div class="card-header" style="background: #f8fafc;">
+              <h4 style="font-size: 15px;">B. Individual Student Marks &amp; Feedback (4 to 5 Members)</h4>
+            </div>
+            <div class="card-body">
+              <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+                Assign individual marks (0 to 100) and personal feedback for each team member based on task completion and viva.
+              </p>
+              <div id="individualGradingList" style="display: flex; flex-direction: column; gap: 14px;">
+                <!-- Dynamically generated rows per member -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-faculty" id="btnSaveEvaluation">Save &amp; Publish Evaluation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 4: DEADLINE EXTENSION DECISION (APPROVE / REJECT)
+       ========================================== -->
+  <div class="modal-overlay" id="deadlineDecisionModal">
+    <div class="modal-container">
+      <div class="modal-header" style="background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+        <h3 class="modal-title" id="deadlineModalTitle">Review Deadline Extension Request</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="deadlineDecisionForm">
+        <div class="modal-body">
+          <input type="hidden" id="decisionItemId">
+          <input type="hidden" id="decisionItemType">
+
+          <div style="background: #f1f5f9; padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b;" id="decisionItemTypeLabel">MILESTONE / TASK</div>
+            <h4 id="decisionItemName" style="font-size: 16px; font-weight: 700; margin: 2px 0 6px 0; color: #0f172a;"></h4>
+            <div style="font-size: 12px; color: #475569;" id="decisionProjectName"></div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;" id="decisionRequestedBy"></div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="background: #fff1f2; border: 1px solid #fecdd3; padding: 10px 12px; border-radius: 8px;">
+              <div style="font-size: 11px; font-weight: 700; color: #e11d48; text-transform: uppercase;">Previous Allocated Date</div>
+              <div id="decisionPrevDeadline" style="font-size: 14px; font-weight: 700; color: #9f1239; margin-top: 4px;"></div>
+              <div style="font-size: 11px; color: #e11d48; margin-top: 2px;">(Enforced if Rejected)</div>
+            </div>
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 12px; border-radius: 8px;">
+              <div style="font-size: 11px; font-weight: 700; color: #2563eb; text-transform: uppercase;">Requested New Date</div>
+              <div id="decisionReqDeadline" style="font-size: 14px; font-weight: 700; color: #1e40af; margin-top: 4px;"></div>
+              <div style="font-size: 11px; color: #2563eb; margin-top: 2px;">(Proposed by Student)</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">Student's Justification / Reason</label>
+            <div id="decisionStudentReason" style="font-size: 13px; color: #334155; background: #fafafa; border: 1px solid #e5e7eb; padding: 10px 12px; border-radius: 6px; font-style: italic;"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="facultyDeadlineDecision">Faculty Decision *</label>
+            <select id="facultyDeadlineDecision" class="form-select" required>
+              <option value="Approved">Approve Extension (Grant Requested Date)</option>
+              <option value="Rejected">Reject Extension (Enforce Previous Allocated Date)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="deadlineRejectionRemarkGroup" style="display: none;">
+            <div class="alert alert-warning" style="margin-bottom: 10px; font-size: 12px;">
+              <strong>Strict Reversion:</strong> If rejected, the deadline will be locked to the previous allocated date, and all team members will be instructed via email to submit on that previous date.
+            </div>
+            <label class="form-label" for="facultyDeadlineRemarks">Rejection Reason / Mentor Remarks *</label>
+            <textarea id="facultyDeadlineRemarks" class="form-textarea" rows="2" placeholder="e.g., Progress does not warrant extension; please complete the original scope on schedule."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitDeadlineDecision">Confirm Decision</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: LOG MENTORSHIP MEETING & ATTENDANCE
+       ========================================== -->
+  <div class="modal-overlay" id="logMeetingModal">
+    <div class="modal-container" style="max-width: 600px;">
+      <div class="modal-header" style="background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+        <h3 class="modal-title" id="logMeetingModalTitle">Log Mentorship Review Meeting</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="logMeetingForm" onsubmit="handleLogMeetingSubmit(event)">
+        <input type="hidden" id="editingMeetingId" value="">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="meetingProjectSelect">Select Mentored Project *</label>
+            <select id="meetingProjectSelect" class="form-select" required onchange="populateMeetingStudentCheckboxes(this.value)">
+              <option value="">-- Choose Project --</option>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="meetingDate">Meeting Date *</label>
+              <input type="date" id="meetingDate" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="meetingTopic">Review Topic / Agenda *</label>
+              <input type="text" id="meetingTopic" class="form-input" placeholder="e.g. Architecture Review" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="form-label" style="margin-bottom: 0;">Student Attendance Check *</label>
+              <div style="font-size: 11.5px; color: #64748b;">Mark presence (Present / Absent) for this session</div>
+            </div>
+            <div id="meetingStudentCheckboxesContainer" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">Select a project above to load team members.</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="meetingNotes">Guide Observation / Meeting Notes (Optional)</label>
+            <textarea id="meetingNotes" class="form-textarea" rows="2" placeholder="e.g. Demonstrated module 1 code; answered database schema questions actively."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-faculty" id="btnSubmitMeetingLog">Save Meeting Attendance</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/faculty.js"></script>
+</body>
+</html>

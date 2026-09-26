@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - Personal Project Milestone Tracker</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="icon" href="/images/college-logo.png">
+</head>
+<body>
+
+  <div class="dashboard-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-wrap">
+          <img src="/images/college-logo.png" alt="RGMCET" class="sidebar-college-logo">
+        </div>
+        <div class="sidebar-title-box">
+          <h2>Project Tracker</h2>
+          <span class="sidebar-role-pill role-student">Student</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item active" data-tab="tabDashboard">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-item" data-tab="tabProjects">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+          <span>My Projects</span>
+        </a>
+        <a class="nav-item" data-tab="tabTeam">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span>My Team</span>
+        </a>
+        <a class="nav-item" data-tab="tabMilestones">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span>
+          <span>Milestones</span>
+        </a>
+        <a class="nav-item" data-tab="tabTasks">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+          <span>Tasks</span>
+        </a>
+        <a class="nav-item" data-tab="tabDocuments">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+          <span>Documents &amp; Files</span>
+        </a>
+        <a class="nav-item" data-tab="tabReport">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+          <span>Project Report</span>
+        </a>
+        <a class="nav-item" data-tab="tabNotifications">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+          <span>Notifications</span>
+        </a>
+        <a class="nav-item" data-tab="tabProfile">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <span>Profile</span>
+        </a>
+        <a class="nav-item" data-tab="tabSettings">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          <span>Settings</span>
+        </a>
+        <a class="nav-item" id="navLogout" style="margin-top: auto; color: #f87171;">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+          <span>Logout</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="user-avatar" id="userAvatar">ST</div>
+          <div class="user-meta">
+            <div class="user-meta-name" id="userName">Student Name</div>
+            <div class="user-meta-role" id="userRegNo">23CS000</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle navigation">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="topbar-title">
+            <h1 id="pageHeading">Student Dashboard</h1>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Notification Bell -->
+          <div class="notif-bell-wrapper">
+            <button class="notif-bell-btn" id="notifBellBtn" title="Notifications" aria-label="Notifications">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
+            </button>
+            <div class="notif-dropdown" id="notifDropdown">
+              <div class="notif-dropdown-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #0f172a;">Notifications</h4>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-sm btn-secondary" id="markAllReadBtn" style="font-size: 11px; padding: 3px 8px;" title="Mark all as read">Mark Read</button>
+                  <button class="btn btn-sm btn-danger" id="clearAllNotifBtn" style="font-size: 11px; padding: 3px 8px; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca;" title="Clear all notifications">Clear All</button>
+                </div>
+              </div>
+              <div class="notif-dropdown-list" id="notifList">
+                <!-- Live notifications injected here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action: Create Project -->
+          <button class="btn btn-primary btn-sm" id="btnOpenCreateProject" style="display: inline-flex; align-items: center; gap: 6px;">
+            + New Project
+          </button>
+        </div>
+      </header>
+
+      <!-- Page Body Tabs -->
+      <div class="page-body">
+
+        <!-- ==========================================
+             TAB 1: DASHBOARD OVERVIEW
+             ========================================== -->
+        <section class="page-tab-content active" id="tabDashboard">
+          <!-- 5 Dashboard Cards -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-info">
+                <h4>Total Projects</h4>
+                <div class="stat-value" id="cardTotalProjects">0</div>
+              </div>
+              <div class="stat-icon-wrapper" style="background: #eff6ff; color: #2563eb;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <h4>Active Projects</h4>
+                <div class="stat-value" id="cardActiveProjects">0</div>
+              </div>
+              <div class="stat-icon-wrapper" style="background: #ecfdf5; color: #10b981;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <h4>Completed Projects</h4>
+                <div class="stat-value" id="cardCompletedProjects">0</div>
+              </div>
+              <div class="stat-icon-wrapper" style="background: #f5f3ff; color: #7c3aed;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <h4>Pending Tasks</h4>
+                <div class="stat-value" id="cardPendingTasks">0</div>
+              </div>
+              <div class="stat-icon-wrapper" style="background: #fffbeb; color: #d97706;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <h4>Overall Progress</h4>
+                <div class="stat-value" id="cardOverallProgress">0%</div>
+              </div>
+              <div class="stat-icon-wrapper" style="background: #ecfeff; color: #0891b2;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Projects Section -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">My Academic Projects</h3>
+              <button class="btn btn-outline-primary btn-sm" onclick="switchTab('tabProjects')">View All</button>
+            </div>
+            <div class="card-body">
+              <div id="dashboardProjectsList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                <!-- Project cards loaded via JS -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 2: MY PROJECTS
+             ========================================== -->
+        <section class="page-tab-content" id="tabProjects">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Enrolled &amp; Led Projects</h3>
+              <button class="btn btn-primary btn-sm" id="btnOpenCreateProject2">+ Create New Project</button>
+            </div>
+            <div class="card-body">
+              <div class="data-table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Project Title</th>
+                      <th>Domain</th>
+                      <th>Faculty Guide</th>
+                      <th>Team Role</th>
+                      <th>Deadline</th>
+                      <th>Progress</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="projectsTableBody">
+                    <!-- Projects rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 3: MY TEAM
+             ========================================== -->
+        <section class="page-tab-content" id="tabTeam">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Project Team Composition</h3>
+              <select id="teamProjectSelect" class="form-select" style="max-width: 280px;"></select>
+            </div>
+            <div class="card-body">
+              <div id="teamContainer">
+                <p style="color: var(--text-muted);">Select a project above to inspect team members.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 4: MILESTONES
+             ========================================== -->
+        <section class="page-tab-content" id="tabMilestones">
+          <div class="card">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <h3 class="card-title">Project Milestones</h3>
+                <select id="milestoneProjectSelect" class="form-select" style="max-width: 260px;"></select>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btnOpenAddMilestone">+ Add Milestone</button>
+            </div>
+            <div class="card-body">
+              <div id="milestonesListContainer">
+                <!-- Milestones loaded dynamically -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 5: TASKS
+             ========================================== -->
+        <section class="page-tab-content" id="tabTasks">
+          <div class="card">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <h3 class="card-title">Tasks Management</h3>
+                <select id="taskProjectSelect" class="form-select" style="max-width: 260px;"></select>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btnOpenAddTask">+ Create Task</button>
+            </div>
+            <div class="card-body">
+              <div class="data-table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Task</th>
+                      <th>Milestone</th>
+                      <th>Assigned Member</th>
+                      <th>Priority</th>
+                      <th>Deadline</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tasksTableBody">
+                    <!-- Tasks rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB: DOCUMENTS & FILES
+             ========================================== -->
+        <section class="page-tab-content" id="tabDocuments">
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <h3 class="card-title" style="margin: 0;">Project Documents</h3>
+                <select id="documentProjectSelect" class="form-select" style="max-width: 260px;"></select>
+                <select id="docCategoryFilter" class="form-select" style="max-width: 200px;">
+                  <option value="ALL">All Categories</option>
+                  <option value="Research Paper">Research Paper</option>
+                  <option value="Presentation (PPT)">Presentation (PPT)</option>
+                  <option value="Project Report">Project Report</option>
+                  <option value="Synopsis / Survey">Synopsis / Survey</option>
+                  <option value="Code & Dataset (ZIP)">Code / Dataset</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btnOpenUploadDocModal" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                + Upload Document
+              </button>
+            </div>
+            <div class="card-body">
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #475569;">
+                  <span style="font-size: 18px;">📁</span>
+                  <span>Upload research papers, PPTs, synopsis, reports, and code archives. Your assigned faculty guide will be notified instantly and can access them directly.</span>
+                </div>
+                <button class="btn btn-sm btn-secondary" id="btnRefreshDocuments" style="font-size: 12px; padding: 4px 10px;">🔄 Refresh</button>
+              </div>
+
+              <div id="documentsListContainer">
+                <!-- Documents loaded dynamically -->
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="page-tab-content" id="tabNotifications">
+          <div class="card">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <h3 class="card-title">Notification Inbox</h3>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-outline-primary btn-sm" id="btnPageMarkAllRead">Mark All as Read</button>
+                <button class="btn btn-danger btn-sm" id="btnPageClearAll" style="background: #ef4444; color: white;">Clear All</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="pageNotifList">
+                <!-- In-app notifications list -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 7: ACADEMIC PROJECT REPORT
+             ========================================== -->
+        <section class="page-tab-content" id="tabReport">
+          <!-- Action bar for Report Options -->
+          <div class="card no-print" style="margin-bottom: 20px;">
+            <div class="card-body" style="padding: 16px 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                  <label for="reportProjectSelect" style="font-size: 13.5px; font-weight: 700; color: #0f172a;">Select Project:</label>
+                  <select id="reportProjectSelect" class="form-select" style="min-width: 280px; max-width: 400px; padding: 8px 12px; font-size: 13.5px; border-radius: 8px; background: #ffffff; color: #0f172a; border: 1.5px solid #94a3b8; font-weight: 600;">
+                    <!-- Project options loaded here -->
+                  </select>
+                  <button class="btn btn-outline-primary btn-sm" id="btnRefreshReport" style="padding: 8px 14px; font-weight: 600;">🔄 Refresh Data</button>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <button class="btn btn-primary btn-sm" id="btnPrintReport" style="padding: 8px 18px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; box-shadow: 0 2px 6px rgba(37,99,235,0.25);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    Print / Save as PDF
+                  </button>
+                </div>
+              </div>
+
+              <!-- Project References & Literature Sources Input Area -->
+              <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+                  <label for="reportSourcesInput" style="font-size: 12.5px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+                    📚 Project References &amp; Technical Sources Consulted:
+                    <span style="font-size: 11px; font-weight: 400; color: #64748b;">(Type one source per line to include in the report)</span>
+                  </label>
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="btnApplySources" style="font-size: 11.5px; padding: 4px 12px; font-weight: 600;">
+                    💾 Save &amp; Update Sources in Report
+                  </button>
+                </div>
+                <textarea id="reportSourcesInput" class="form-input" rows="3" placeholder="Example:&#10;1. IEEE Journal Paper on Machine Learning Architectures &amp; Datasets&#10;2. Official Python / PyTorch / React Framework Documentation&#10;3. Open-Source Benchmark Repository on GitHub (2025 Release)" style="font-size: 12.5px; line-height: 1.5; resize: vertical; border-radius: 6px; font-family: inherit; width: 100%;"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Printable Academic Report Container -->
+          <div id="printableReportContainer" class="academic-report-sheet">
+            <!-- Dynamic project report injected here -->
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             TAB 8: PROFILE
+             ========================================== -->
+        <section class="page-tab-content" id="tabProfile">
+          <div class="card" style="max-width: 600px;">
+            <div class="card-header">
+              <h3 class="card-title">Student Profile</h3>
+            </div>
+            <div class="card-body">
+              <form id="profileForm">
+                <div class="form-group">
+                  <label class="form-label">Full Name</label>
+                  <input type="text" id="profName" class="form-input" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Register Number</label>
+                  <input type="text" id="profRegNo" class="form-input" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Email</label>
+                  <input type="email" id="profEmail" class="form-input" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="profDept">Department</label>
+                  <select id="profDept" class="form-select">
+                    <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+                    <option value="CSE (AI & ML)">CSE (AI & ML)</option>
+                    <option value="CSE (AI)">CSE (AI)</option>
+                    <option value="CSE (Data Science)">CSE (Data Science)</option>
+                    <option value="CSE (Cyber Security)">CSE (Cyber Security)</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Electronics & Communication">Electronics & Communication</option>
+                    <option value="Electrical & Electronics">Electrical & Electronics</option>
+                    <option value="Mechanical Engineering">Mechanical Engineering</option>
+                    <option value="Civil Engineering">Civil Engineering</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Academic Year</label>
+                  <input type="text" id="profYear" class="form-input" placeholder="e.g. 3rd Year">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone Number</label>
+                  <input type="tel" id="profPhone" class="form-input">
+                </div>
+                <button type="submit" class="btn btn-primary">Save Profile Changes</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 9: NOTIFICATION SETTINGS
+             ========================================== -->
+        <section class="page-tab-content" id="tabSettings">
+          <div class="card" style="max-width: 680px;">
+            <div class="card-header">
+              <h3 class="card-title">Notification Channels &amp; Reminders</h3>
+            </div>
+            <div class="card-body">
+              <form id="settingsForm">
+                <h4 style="margin-bottom: 16px; font-size: 15px; color: var(--text-main);">Dispatch Channels</h4>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+                  <label style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>Email Notifications</span>
+                    <input type="checkbox" id="prefEmail" style="transform: scale(1.3);">
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>In-App Notifications</span>
+                    <input type="checkbox" id="prefInApp" style="transform: scale(1.3);">
+                  </label>
+                </div>
+
+                <h4 style="margin-bottom: 16px; font-size: 15px; color: var(--text-main);">Automated Task Reminders</h4>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+                  <label style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>3-Day Reminder (Task deadline in 3 days)</span>
+                    <input type="checkbox" id="pref3Day" style="transform: scale(1.3);">
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>1-Day Reminder (Task deadline tomorrow)</span>
+                    <input type="checkbox" id="pref1Day" style="transform: scale(1.3);">
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>Deadline-Day Reminder (Task deadline today)</span>
+                    <input type="checkbox" id="prefDeadline" style="transform: scale(1.3);">
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>Overdue Reminder (Task overdue)</span>
+                    <input type="checkbox" id="prefOverdue" style="transform: scale(1.3);">
+                  </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Update Notification Preferences</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODAL: CREATE PROJECT
+       ========================================== -->
+  <div class="modal-overlay" id="createProjectModal">
+    <div class="modal-container modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Create New Project</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="createProjectForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="projName">Project Name *</label>
+            <input type="text" id="projName" class="form-input" placeholder="e.g. AI-Powered Vision Analytics" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="projDesc">Project Description *</label>
+            <textarea id="projDesc" class="form-textarea" rows="3" placeholder="Describe the objectives and technical scope..." required></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <div class="form-label-row">
+                <label class="form-label" for="projDomainSelect">Domain *</label>
+              </div>
+              <select id="projDomainSelect" class="form-select" onchange="toggleDomainOtherInput('create')" required>
+                <option value="">-- Select Project Domain --</option>
+                <option value="Artificial Intelligence & Machine Learning (AI & ML)">Artificial Intelligence & Machine Learning (AI & ML)</option>
+                <option value="Data Science & Big Data Analytics">Data Science & Big Data Analytics</option>
+                <option value="Web Development & Full Stack">Web Development & Full Stack</option>
+                <option value="Mobile App Development (Android / iOS / Flutter)">Mobile App Development (Android / iOS / Flutter)</option>
+                <option value="Cybersecurity & Cryptography">Cybersecurity & Cryptography</option>
+                <option value="Cloud Computing & DevOps">Cloud Computing & DevOps</option>
+                <option value="Internet of Things (IoT) & Embedded Systems">Internet of Things (IoT) & Embedded Systems</option>
+                <option value="Blockchain & Distributed Ledgers">Blockchain & Distributed Ledgers</option>
+                <option value="Computer Vision & Image Processing">Computer Vision & Image Processing</option>
+                <option value="Natural Language Processing (NLP) & GenAI">Natural Language Processing (NLP) & GenAI</option>
+                <option value="Other">Other (Specify Custom Domain)</option>
+              </select>
+              <input type="text" id="projDomainOther" class="form-input" placeholder="Enter custom domain name..." style="display: none; margin-top: 8px;">
+            </div>
+            <div class="form-group">
+              <div class="form-label-row">
+                <label class="form-label" for="projFaculty">Select Faculty Guide *</label>
+                <span id="studentAllocBadge" class="alloc-badge">Allocated by Admin</span>
+              </div>
+              <select id="projFaculty" class="form-select" required>
+                <option value="">-- Loading allocated faculty... --</option>
+              </select>
+              <div id="studentAllocInfo" class="alloc-info-subtext"></div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <div class="form-label-row">
+                <label class="form-label" for="projStartDate">Start Date *</label>
+              </div>
+              <input type="date" id="projStartDate" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <div class="form-label-row">
+                <label class="form-label" for="projDeadline">Project Deadline *</label>
+              </div>
+              <input type="date" id="projDeadline" class="form-input" required>
+            </div>
+          </div>
+
+          <!-- Team Members Section (Manual Entry by Name, Reg No, Email & Phone) -->
+          <div class="modal-team-box">
+            <div class="modal-team-header">
+              <h4 class="modal-team-title">Team Members</h4>
+              <span class="badge badge-submitted" id="memberCountBadge">1 Member</span>
+            </div>
+            <p class="modal-team-desc">
+              Enter team member details below (Name, Register Number, Email, Phone). Automated notifications (Email &amp; In-App) are dispatched to <strong>every team member</strong> when milestone and task deadlines approach. You (Team Leader) are member #1.
+            </p>
+
+            <!-- Manual Member Entry Form -->
+            <div class="modal-team-manual-entry">
+              <div class="form-group">
+                <label class="form-label" for="manualMemberName" style="font-size: 12px; margin-bottom: 4px;">Student Name *</label>
+                <input type="text" id="manualMemberName" class="form-input" placeholder="e.g. Rahul Sharma">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="manualMemberRegNo" style="font-size: 12px; margin-bottom: 4px;">Register Number *</label>
+                <input type="text" id="manualMemberRegNo" class="form-input" placeholder="e.g. 24CSE015" style="text-transform: uppercase;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="manualMemberEmail" style="font-size: 12px; margin-bottom: 4px;">Email ID *</label>
+                <input type="email" id="manualMemberEmail" class="form-input" placeholder="e.g. rahul@rgm.edu">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="manualMemberPhone" style="font-size: 12px; margin-bottom: 4px;">Phone Number *</label>
+                <input type="tel" id="manualMemberPhone" class="form-input" placeholder="e.g. 9876543210">
+              </div>
+              <div class="modal-team-add-btn-wrapper">
+                <button type="button" class="btn btn-primary" id="btnAddManualMember" style="width: 100%; height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                  + Add Member
+                </button>
+              </div>
+            </div>
+
+            <!-- Selected Members List -->
+            <div id="selectedMembersList" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Auto populated with Team Leader and manually added members -->
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitProject">Submit Project to Faculty</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: EDIT PROJECT
+       ========================================== -->
+  <div class="modal-overlay" id="editProjectModal">
+    <div class="modal-container modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Project Details</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="editProjectForm">
+        <input type="hidden" id="editProjIdHidden">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="editProjName">Project Name *</label>
+            <input type="text" id="editProjName" class="form-input" placeholder="e.g. AI-Powered Vision Analytics" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="editProjDesc">Project Description *</label>
+            <textarea id="editProjDesc" class="form-textarea" rows="3" placeholder="Describe the objectives and technical scope..." required></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="editProjDomainSelect">Domain *</label>
+              <select id="editProjDomainSelect" class="form-select" onchange="toggleDomainOtherInput('edit')" required>
+                <option value="">-- Select Project Domain --</option>
+                <option value="Artificial Intelligence & Machine Learning (AI & ML)">Artificial Intelligence & Machine Learning (AI & ML)</option>
+                <option value="Data Science & Big Data Analytics">Data Science & Big Data Analytics</option>
+                <option value="Web Development & Full Stack">Web Development & Full Stack</option>
+                <option value="Mobile App Development (Android / iOS / Flutter)">Mobile App Development (Android / iOS / Flutter)</option>
+                <option value="Cybersecurity & Cryptography">Cybersecurity & Cryptography</option>
+                <option value="Cloud Computing & DevOps">Cloud Computing & DevOps</option>
+                <option value="Internet of Things (IoT) & Embedded Systems">Internet of Things (IoT) & Embedded Systems</option>
+                <option value="Blockchain & Distributed Ledgers">Blockchain & Distributed Ledgers</option>
+                <option value="Computer Vision & Image Processing">Computer Vision & Image Processing</option>
+                <option value="Natural Language Processing (NLP) & GenAI">Natural Language Processing (NLP) & GenAI</option>
+                <option value="Other">Other (Specify Custom Domain)</option>
+              </select>
+              <input type="text" id="editProjDomainOther" class="form-input" placeholder="Enter custom domain name..." style="display: none; margin-top: 8px;">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editProjFaculty">Assigned Faculty Guide *</label>
+              <select id="editProjFaculty" class="form-select" required></select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="editProjStartDate">Start Date *</label>
+              <input type="date" id="editProjStartDate" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editProjDeadline">Project Deadline *</label>
+              <input type="date" id="editProjDeadline" class="form-input" required>
+            </div>
+          </div>
+
+          <!-- Team Members Section -->
+          <div class="modal-team-box">
+            <div class="modal-team-header">
+              <h4 class="modal-team-title">Team Members</h4>
+              <span class="badge badge-submitted" id="editMemberCountBadge">Team Members</span>
+            </div>
+            <p class="modal-team-desc">
+              Correct team member details or add/remove students. Automated Email &amp; In-App alerts are dispatched to all team members.
+            </p>
+
+            <div class="modal-team-manual-entry">
+              <div class="form-group">
+                <label class="form-label" for="editManualMemberName" style="font-size: 12px; margin-bottom: 4px;">Student Name</label>
+                <input type="text" id="editManualMemberName" class="form-input" placeholder="e.g. Rahul Sharma">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="editManualMemberRegNo" style="font-size: 12px; margin-bottom: 4px;">Register Number</label>
+                <input type="text" id="editManualMemberRegNo" class="form-input" placeholder="e.g. 24CSE015" style="text-transform: uppercase;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="editManualMemberEmail" style="font-size: 12px; margin-bottom: 4px;">Email ID</label>
+                <input type="email" id="editManualMemberEmail" class="form-input" placeholder="e.g. rahul@rgm.edu">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="editManualMemberPhone" style="font-size: 12px; margin-bottom: 4px;">Phone Number</label>
+                <input type="tel" id="editManualMemberPhone" class="form-input" placeholder="e.g. 9876543210">
+              </div>
+              <div class="modal-team-add-btn-wrapper">
+                <button type="button" class="btn btn-primary" id="btnEditAddManualMember" style="width: 100%; height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                  + Add Member
+                </button>
+              </div>
+            </div>
+
+            <!-- Edit Selected Members List -->
+            <div id="editSelectedMembersList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveEditProject">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: CREATE MILESTONE
+       ========================================== -->
+  <div class="modal-overlay" id="addMilestoneModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Add Milestone</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="addMilestoneForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="msName">Milestone Name *</label>
+            <input type="text" id="msName" class="form-input" placeholder="e.g. Phase 1: Prototype Architecture" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="msDesc">Description</label>
+            <textarea id="msDesc" class="form-textarea" rows="2" placeholder="Milestone details..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="msStartDate">Start Date *</label>
+              <input type="date" id="msStartDate" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="msDeadline">Deadline *</label>
+              <input type="date" id="msDeadline" class="form-input" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="msStatus">Status</label>
+            <select id="msStatus" class="form-select">
+              <option value="Not Started">Not Started</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Delayed">Delayed</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Milestone</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: EDIT MILESTONE
+       ========================================== -->
+  <div class="modal-overlay" id="editMilestoneModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Milestone</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="editMilestoneForm">
+        <input type="hidden" id="editMsIdHidden">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="editMsName">Milestone Name *</label>
+            <input type="text" id="editMsName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editMsDesc">Description</label>
+            <textarea id="editMsDesc" class="form-textarea" rows="2"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="editMsStartDate">Start Date *</label>
+              <input type="date" id="editMsStartDate" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editMsDeadline">Deadline *</label>
+              <input type="date" id="editMsDeadline" class="form-input" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="editMsStatus">Status</label>
+              <select id="editMsStatus" class="form-select">
+                <option value="Not Started">Not Started</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Delayed">Delayed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editMsProgress">Progress (%)</label>
+              <input type="number" id="editMsProgress" class="form-input" min="0" max="100" placeholder="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editMsDeadlineReason">Offline Consultation Note / Extension Reason</label>
+            <textarea id="editMsDeadlineReason" class="form-textarea" rows="2" placeholder="e.g. Discussed offline with faculty guide; requested extension for module completion..."></textarea>
+          </div>
+          <div style="font-size: 11.5px; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 12px; margin-top: 6px;">
+            ⚠️ <strong>Faculty Mentor Approval:</strong> Changing milestone deadlines will submit an extension request to your Faculty Guide. <em>If rejected, you must strictly submit on the previous allocated date.</em>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Milestone</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: CREATE TASK
+       ========================================== -->
+  <div class="modal-overlay" id="addTaskModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Create Task</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="addTaskForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="taskName">Task Name *</label>
+            <input type="text" id="taskName" class="form-input" placeholder="e.g. Implement API route" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="taskDesc">Description</label>
+            <textarea id="taskDesc" class="form-textarea" rows="2" placeholder="Task specifics..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="taskMilestoneSelect">Milestone *</label>
+              <select id="taskMilestoneSelect" class="form-select" required></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="taskPriority">Priority</label>
+              <select id="taskPriority" class="form-select">
+                <option value="Low">Low</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="taskDeadline">Deadline *</label>
+              <input type="date" id="taskDeadline" class="form-input" required>
+            </div>
+          </div>
+
+          <!-- Multi-Member / Group Task Assignment -->
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="form-label" style="margin-bottom: 0;">Assign Team Members (Individual or Group) *</label>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnAssignAllMembers" style="font-size: 11px; padding: 2px 8px;">👥 Entire Team</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="btnClearAssignMembers" style="font-size: 11px; padding: 2px 8px;">Clear</button>
+              </div>
+            </div>
+            <div id="taskAssignCheckboxContainer" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+              <!-- Dynamically populated with team members checkboxes -->
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="taskAssignSelectionSummary">
+              Select one or more individual members, or click "Entire Team" for a group task.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: EDIT TASK
+       ========================================== -->
+  <div class="modal-overlay" id="editTaskModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Task Details</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="editTaskForm">
+        <input type="hidden" id="editTaskIdHidden">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="editTaskName">Task Name *</label>
+            <input type="text" id="editTaskName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editTaskDesc">Description</label>
+            <textarea id="editTaskDesc" class="form-textarea" rows="2"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="editTaskPriority">Priority</label>
+              <select id="editTaskPriority" class="form-select">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editTaskStatus">Status</label>
+              <select id="editTaskStatus" class="form-select">
+                <option value="To Do">To Do</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Overdue">Overdue</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editTaskDeadline">Deadline *</label>
+              <input type="date" id="editTaskDeadline" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="editTaskMilestoneSelect">Milestone</label>
+            <select id="editTaskMilestoneSelect" class="form-select"></select>
+          </div>
+
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="form-label" style="margin-bottom: 0;">Assigned Team Members</label>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnEditTaskAssignAll" style="font-size: 11px; padding: 2px 8px;">👥 Entire Team</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="btnEditTaskAssignClear" style="font-size: 11px; padding: 2px 8px;">Clear</button>
+              </div>
+            </div>
+            <div id="editTaskAssignContainer" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="editTaskAssignSummary"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="editTaskDeadlineReason">Offline Consultation Note / Extension Reason</label>
+            <textarea id="editTaskDeadlineReason" class="form-textarea" rows="2" placeholder="e.g. Discussed with faculty mentor offline; extending module deadline..."></textarea>
+          </div>
+
+          <div style="font-size: 11.5px; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 12px; margin-top: 4px;">
+            ⚠️ <strong>Faculty Mentor Approval:</strong> Changing task deadlines will submit an extension request to your Faculty Guide. <em>If rejected, you must strictly submit on the previous allocated date.</em>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: UPLOAD PROJECT DOCUMENT
+       ========================================== -->
+  <div class="modal-overlay" id="uploadDocModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Upload Project Deliverable / File</h3>
+        <button class="modal-close-btn" data-close>&times;</button>
+      </div>
+      <form id="uploadDocForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="uploadDocProjectSelect">Project *</label>
+            <select id="uploadDocProjectSelect" class="form-select" required></select>
+          </div>
+
+          <!-- Submission Scope: Team Deliverable vs Individual Submission -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="uploadDocSubmissionType">Submission Scope / Uploaded For *</label>
+              <select id="uploadDocSubmissionType" class="form-select" required>
+                <option value="Team" selected>👥 Entire Team (Team Deliverable / All Members)</option>
+                <option value="Individual">👤 Individual (Single Member Deliverable)</option>
+              </select>
+            </div>
+            <div class="form-group" id="uploadDocMemberGroup" style="display: none;">
+              <label class="form-label" for="uploadDocMemberSelect">Select Individual Member *</label>
+              <select id="uploadDocMemberSelect" class="form-select">
+                <!-- Dynamically populated with project team members -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="uploadDocCategory">Deliverable Category *</label>
+              <select id="uploadDocCategory" class="form-select" required>
+                <option value="Research Paper">📄 Research Paper (IEEE / Journal)</option>
+                <option value="Presentation (PPT)">📊 Presentation (PPT / PPTX)</option>
+                <option value="Project Report">📘 Project Report (Interim / Final / SRS)</option>
+                <option value="Synopsis / Survey">📑 Synopsis / Literature Survey</option>
+                <option value="Code & Dataset (ZIP)">🗂️ Code / Dataset Archive (ZIP)</option>
+                <option value="Other">📁 Other Deliverable</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="uploadDocTitle">Document Title *</label>
+              <input type="text" id="uploadDocTitle" class="form-input" placeholder="e.g. IEEE Paper Draft v1" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="uploadDocDesc">Notes / Description (Optional)</label>
+            <textarea id="uploadDocDesc" class="form-textarea" rows="2" placeholder="e.g., Includes literature survey and experimental results..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="uploadDocFileInput">Select File * (Max 50MB)</label>
+            <input type="file" id="uploadDocFileInput" class="form-input" style="padding: 8px;" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.7z,.txt,.png,.jpg,.jpeg,.xlsx,.csv" required>
+            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+              Accepted formats: PDF, Word (DOC/DOCX), PowerPoint (PPT/PPTX), ZIP/RAR, Excel, Images.
+            </div>
+          </div>
+
+          <div style="font-size: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 12px; color: #1e40af; display: flex; align-items: center; gap: 8px;">
+            <span>ℹ️</span>
+            <span>Once uploaded, this document will be directly accessible by your assigned faculty guide and in-app/email alerts will be delivered.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitUploadDoc">
+            <span id="uploadBtnSpinner" style="display: none;">⏳ Uploading...</span>
+            <span id="uploadBtnText">Upload &amp; Submit</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/student.js"></script>
+</body>
+</html>

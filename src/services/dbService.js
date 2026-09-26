@@ -237,12 +237,24 @@ const Projects = {
   // Populate teamLeader, teamMembers, faculty
   async populate(project) {
     if (!project) return null;
-    const populated = { ...project };
+    const projId = project.id || project._id;
+    const populated = {
+      ...project,
+      _id: projId,
+      id: projId
+    };
 
     // Populate teamLeaderId
     if (project.teamLeaderId) {
-      const leader = await Users.findById(project.teamLeaderId?._id || project.teamLeaderId);
-      if (leader) populated.teamLeaderId = leader;
+      const leaderId = project.teamLeaderId?._id || project.teamLeaderId?.id || project.teamLeaderId;
+      const leader = await Users.findById(leaderId);
+      if (leader) {
+        populated.teamLeaderId = {
+          ...leader,
+          _id: leader.id || leader._id,
+          id: leader.id || leader._id
+        };
+      }
     }
 
     // Populate facultyId
@@ -255,7 +267,13 @@ const Projects = {
       if (!fac && typeof facId === 'string') {
         fac = await Faculty.findOne(f => String(f.id) === facId || String(f._id) === facId || (f.facultyId && f.facultyId.toUpperCase() === facId.toUpperCase()));
       }
-      if (fac) populated.facultyId = fac;
+      if (fac) {
+        populated.facultyId = {
+          ...fac,
+          _id: fac.id || fac._id,
+          id: fac.id || fac._id
+        };
+      }
     }
 
     // Set canonical department and year for project

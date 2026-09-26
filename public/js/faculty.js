@@ -70,6 +70,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const targetTab = urlParams.get('tab');
   const targetProjId = urlParams.get('projectId');
+  const action = urlParams.get('action');
+
   if (targetTab) {
     switchTab(targetTab);
     if (targetTab === 'tabDocuments' && targetProjId) {
@@ -80,6 +82,33 @@ document.addEventListener('DOMContentLoaded', async () => {
           renderFacultyDocuments();
         }
       }, 300);
+    }
+  }
+
+  if (targetProjId) {
+    const proj = assignedProjects.find(p => String(p._id || p.id) === String(targetProjId));
+    if (proj) {
+      if (action === 'review' || proj.status === 'Submitted' || proj.status === 'Pending') {
+        openReviewModal(targetProjId, proj.projectName, proj.teamLeaderId?.name || 'Team Leader');
+      } else {
+        openViewProjectModal(targetProjId);
+      }
+    } else {
+      (async () => {
+        try {
+          const pRes = await apiRequest(`/faculty/projects/assigned/${targetProjId}`);
+          if (pRes.success && pRes.data) {
+            const pData = pRes.data;
+            if (action === 'review' || pData.status === 'Submitted' || pData.status === 'Pending') {
+              openReviewModal(targetProjId, pData.projectName, pData.teamLeaderId?.name || 'Team Leader');
+            } else {
+              openViewProjectModal(targetProjId);
+            }
+          }
+        } catch (e) {
+          console.warn('Could not auto-open project from URL:', e.message);
+        }
+      })();
     }
   }
 });
@@ -211,23 +240,26 @@ async function loadAssignedProjects() {
       }
 
       // Check for submitted projects requiring approval
-      const submittedQueue = assignedProjects.filter(p => p.status === 'Submitted');
+      const submittedQueue = assignedProjects.filter(p => p.status === 'Submitted' || p.status === 'Pending');
       const queueCard = document.getElementById('approvalQueueCard');
       const queueList = document.getElementById('approvalQueueList');
 
       if (queueCard && queueList) {
         if (submittedQueue.length > 0) {
           queueCard.style.display = 'block';
-          queueList.innerHTML = submittedQueue.map(p => `
-            <div style="background: #ffffff; border: 1px solid #fde68a; border-radius: 8px; padding: 14px;">
+          queueList.innerHTML = submittedQueue.map(p => {
+            const pid = p._id || p.id;
+            return `
+            <div style="background: #ffffff; border: 1.5px solid #fde68a; border-radius: 8px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
               <h4 style="font-size: 15px; margin-bottom: 2px;">${escapeHtml(p.projectName)}</h4>
               <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Leader: ${escapeHtml(p.teamLeaderId?.name || 'N/A')} &bull; ${p.teamMemberIds?.length || 0} Members</p>
               <div style="display: flex; gap: 8px;">
-                <button class="btn btn-sm btn-primary" onclick="openReviewModal('${p._id}', '${escapeHtml(p.projectName).replace(/'/g, "\\'")}', '${escapeHtml(p.teamLeaderId?.name || '').replace(/'/g, "\\'")}')">Review &amp; Approve</button>
-                <button class="btn btn-sm btn-secondary" onclick="openViewProjectModal('${p._id}')">Details</button>
+                <button class="btn btn-sm btn-primary" onclick="openReviewModal('${pid}', '${escapeHtml(p.projectName).replace(/'/g, "\\'")}', '${escapeHtml(p.teamLeaderId?.name || '').replace(/'/g, "\\'")}')">Review &amp; Approve</button>
+                <button class="btn btn-sm btn-secondary" onclick="openViewProjectModal('${pid}')">Details</button>
               </div>
             </div>
-          `).join('');
+          `;
+          }).join('');
         } else {
           queueCard.style.display = 'none';
         }
@@ -513,9 +545,12 @@ function renderFacultyProjectCards() {
             <div><strong>Marks:</strong> <span style="font-weight: 700; color: ${p.evaluation ? '#059669' : '#d97706'};">${marksDisplay}</span></div>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="openViewProjectModal('${p._id}')">Details</button>
-            <button class="btn btn-outline-primary btn-sm" onclick="openFacultyProjectDocuments('${p._id}')" title="Student Deliverables & Submissions">📁 Files</button>
-            <button class="btn btn-faculty btn-sm" style="flex: 1;" onclick="openEvaluationModal('${p._id}')">Evaluate</button>
+            ${(p.status === 'Submitted' || p.status === 'Pending') ? `
+              <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="openReviewModal('${p._id || p.id}', '${escapeHtml(p.projectName).replace(/'/g, "\\'")}', '${escapeHtml(p.teamLeaderId?.name || '').replace(/'/g, "\\'")}')">Review &amp; Approve</button>
+            ` : ''}
+            <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="openViewProjectModal('${p._id || p.id}')">Details</button>
+            <button class="btn btn-outline-primary btn-sm" onclick="openFacultyProjectDocuments('${p._id || p.id}')" title="Student Deliverables & Submissions">📁 Files</button>
+            <button class="btn btn-faculty btn-sm" style="flex: 1;" onclick="openEvaluationModal('${p._id || p.id}')">${p.evaluation ? 'Re-Grade' : 'Evaluate'}</button>
           </div>
         </div>
       </div>
@@ -570,11 +605,14 @@ function renderFacultyProjectsTable() {
         <td>${marksDisplay}</td>
         <td>
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button class="btn btn-sm btn-secondary" onclick="openViewProjectModal('${p._id}')">View</button>
-            <button class="btn btn-sm btn-outline-primary" onclick="openFacultyProjectDocuments('${p._id}')" title="Student Deliverables">📁 Files</button>
-            <button class="btn btn-sm btn-faculty" onclick="openEvaluationModal('${p._id}')">${p.evaluation ? 'Re-Grade' : 'Grade'}</button>
-            ${p.evaluation ? `<button class="btn btn-sm btn-outline-success" onclick="exportProjectMarksPDF('${p._id}')" title="Print / Download Official Marks Sheet (PDF)" style="border-color: #059669; color: #059669; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;">📄 PDF</button>` : ''}
-            <button class="btn btn-sm btn-danger" onclick="handleDeleteFacultyProject('${p._id}', '${escapeHtml(p.projectName)}')" title="Delete Project">Delete</button>
+            ${(p.status === 'Submitted' || p.status === 'Pending') ? `
+              <button class="btn btn-sm btn-primary" onclick="openReviewModal('${p._id || p.id}', '${escapeHtml(p.projectName).replace(/'/g, "\\'")}', '${escapeHtml(p.teamLeaderId?.name || '').replace(/'/g, "\\'")}')">Review &amp; Approve</button>
+            ` : ''}
+            <button class="btn btn-sm btn-secondary" onclick="openViewProjectModal('${p._id || p.id}')">View</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="openFacultyProjectDocuments('${p._id || p.id}')" title="Student Deliverables">📁 Files</button>
+            <button class="btn btn-sm btn-faculty" onclick="openEvaluationModal('${p._id || p.id}')">${p.evaluation ? 'Re-Grade' : 'Grade'}</button>
+            ${p.evaluation ? `<button class="btn btn-sm btn-outline-success" onclick="exportProjectMarksPDF('${p._id || p.id}')" title="Print / Download Official Marks Sheet (PDF)" style="border-color: #059669; color: #059669; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;">📄 PDF</button>` : ''}
+            <button class="btn btn-sm btn-danger" onclick="handleDeleteFacultyProject('${p._id || p.id}', '${escapeHtml(p.projectName)}')" title="Delete Project">Delete</button>
           </div>
         </td>
       </tr>
@@ -767,6 +805,19 @@ window.openViewProjectModal = async function(projectId) {
                 <div class="rubric-row"><span>5. Team Coordination & Participation</span><strong>${p.evaluation.teamParticipation}/10</strong></div>
               </div>
               ${p.evaluation.feedback ? `<div style="font-size: 12.5px; color: #166534; margin-top: 8px; background: #dcfce7; padding: 8px 12px; border-radius: 6px;"><strong>Faculty Guide Feedback:</strong> ${escapeHtml(p.evaluation.feedback)}</div>` : ''}
+            </div>
+          ` : ''}
+
+          <!-- 6. Review & Approval Action Banner if Submitted -->
+          ${(p.status === 'Submitted' || p.status === 'Pending') ? `
+            <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <strong style="color: #b45309; font-size: 14px;">📌 Project Proposal Awaiting Your Approval</strong>
+                <p style="margin: 4px 0 0; font-size: 12.5px; color: #78350f;">Review the team submission details above and approve or provide revision remarks.</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="document.getElementById('viewProjectModal').classList.remove('active'); openReviewModal('${p._id || p.id}', '${escapeHtml(p.projectName).replace(/'/g, "\\'")}', '${escapeHtml(p.teamLeaderId?.name || 'Team Leader').replace(/'/g, "\\'")}')">
+                Review &amp; Approve Now
+              </button>
             </div>
           ` : ''}
         </div>
@@ -1086,7 +1137,7 @@ function renderPendingEvaluations() {
               <div><strong>Leader:</strong> ${p.teamLeaderId?.name} &bull; ${p.teamMemberIds?.length || 0} Members</div>
             </div>
             <div style="font-size: 13px; margin-bottom: 16px;">Overall Task Progress: <strong>${p.progress || 0}%</strong></div>
-            <button class="btn btn-faculty btn-sm" style="width: 100%;" onclick="openEvaluationModal('${p._id}')">Start Evaluation Rubric</button>
+            <button class="btn btn-faculty btn-sm" style="width: 100%;" onclick="openEvaluationModal('${p._id || p.id}')">Start Evaluation Rubric</button>
           </div>
         </div>
       `).join('')}
@@ -1130,10 +1181,10 @@ function renderCompletedEvaluations() {
             </div>
             <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Evaluated On: ${formatDate(p.evaluation.evaluatedAt)}</div>
             <div style="display: flex; gap: 8px;">
-              <button class="btn btn-outline-primary btn-sm" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-weight: 600;" onclick="exportProjectMarksPDF('${p._id}')" title="Print or Download PDF Marks Sheet">
+              <button class="btn btn-outline-primary btn-sm" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-weight: 600;" onclick="exportProjectMarksPDF('${p._id || p.id}')" title="Print or Download PDF Marks Sheet">
                 📄 Marks Sheet (PDF)
               </button>
-              <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="openEvaluationModal('${p._id}')">Update Marks</button>
+              <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="openEvaluationModal('${p._id || p.id}')">Update Marks</button>
             </div>
           </div>
         </div>

@@ -212,7 +212,7 @@ const generateProfessionalEmailTemplate = ({
  */
 const sendProjectAssignedEmail = async ({ facultyEmail, facultyName, projectName, domain, teamLeaderName, teamMembers = [], deadline, projectId, department, year }) => {
   const appUrl = process.env.APP_URL || 'http://localhost:5000';
-  const projectLink = `${appUrl}/faculty/index.html?projectId=${projectId}`;
+  const projectLink = `${appUrl}/faculty/index.html?projectId=${projectId}&action=review`;
 
   const subject = `📌 New Academic Project Assigned: "${projectName}"`;
   const membersList = teamMembers.map(m => `${m.name} (${m.registerNumber || 'Student'})`).join(', ');

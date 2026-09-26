@@ -231,13 +231,14 @@ async function handleAddFacultySubmit(e) {
 
 // Open Edit Faculty
 window.openEditFacultyModal = function(id) {
-  const f = allFaculty.find(item => item._id === id);
+  const f = allFaculty.find(item => (item._id || item.id) === id);
   if (!f) return;
 
-  document.getElementById('editFacIdHidden').value = f._id;
-  document.getElementById('editFacName').value = f.name;
-  document.getElementById('editFacDept').value = f.department;
-  document.getElementById('editFacDesig').value = f.designation;
+  document.getElementById('editFacIdHidden').value = f._id || f.id;
+  document.getElementById('editFacName').value = f.name || '';
+  document.getElementById('editFacEmail').value = f.email || '';
+  document.getElementById('editFacDept').value = f.department || 'Computer Science & Engineering';
+  document.getElementById('editFacDesig').value = f.designation || '';
   document.getElementById('editFacPhone').value = f.phone || '';
 
   document.getElementById('editFacultyModal').classList.add('active');
@@ -247,12 +248,13 @@ async function handleEditFacultySubmit(e) {
   e.preventDefault();
   const id = document.getElementById('editFacIdHidden').value;
   const name = document.getElementById('editFacName').value.trim();
+  const email = document.getElementById('editFacEmail').value.trim();
   const department = document.getElementById('editFacDept').value.trim();
   const designation = document.getElementById('editFacDesig').value.trim();
   const phone = document.getElementById('editFacPhone').value.trim();
 
   try {
-    await apiRequest(`/faculty/${id}`, 'PUT', { name, department, designation, phone });
+    await apiRequest(`/faculty/${id}`, 'PUT', { name, email, department, designation, phone });
     showToast('Faculty updated successfully', 'success');
     document.getElementById('editFacultyModal').classList.remove('active');
     loadFacultyDirectory();

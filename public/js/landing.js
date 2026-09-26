@@ -177,6 +177,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ==========================================
   // STUDENT LOGIN FORM
+  const getRedirectDestination = (defaultPath) => {
+    const redirect = sessionStorage.getItem('authRedirect');
+    if (redirect) {
+      sessionStorage.removeItem('authRedirect');
+      return redirect;
+    }
+    return defaultPath;
+  };
+
+  // ==========================================
+  // STUDENT LOGIN FORM
   // ==========================================
   const studentLoginForm = document.getElementById('studentLoginForm');
   if (studentLoginForm) {
@@ -195,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
           setSession(res.token, res.user);
           showToast('Student Login Successful! Redirecting...', 'success');
           setTimeout(() => {
-            window.location.href = '/student/';
+            window.location.href = getRedirectDestination('/student/');
           }, 800);
         }
       } catch (err) {
@@ -248,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
           setSession(res.token, res.user);
           showToast('Registration successful! Welcome to Project Tracker.', 'success');
           setTimeout(() => {
-            window.location.href = '/student/';
+            window.location.href = getRedirectDestination('/student/');
           }, 800);
         }
       } catch (err) {
@@ -279,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
           setSession(res.token, res.user);
           showToast('Faculty Login Successful! Redirecting...', 'success');
           setTimeout(() => {
-            window.location.href = '/faculty/';
+            window.location.href = getRedirectDestination('/faculty/');
           }, 800);
         }
       } catch (err) {
@@ -310,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
           setSession(res.token, res.user);
           showToast('Admin Login Successful! Redirecting...', 'success');
           setTimeout(() => {
-            window.location.href = '/admin/';
+            window.location.href = getRedirectDestination('/admin/');
           }, 800);
         }
       } catch (err) {

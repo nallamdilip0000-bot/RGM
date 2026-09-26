@@ -238,7 +238,7 @@ router.post('/', verifyToken, requireRole('student'), async (req, res) => {
 
     const populatedProject = await Projects.populate(project);
     const appUrl = process.env.APP_URL || 'http://localhost:5000';
-    const facultyProjectLink = `${appUrl}/faculty/index.html?projectId=${project.id}`;
+    const facultyProjectLink = `${appUrl}/faculty/index.html?projectId=${project.id}&action=review`;
     const studentProjectLink = `${appUrl}/student/index.html?projectId=${project.id}`;
     const membersList = (populatedProject.teamMemberIds || parsedMembers).map(m => `${m.name} (${m.registerNumber || 'Student'})`).join(', ');
 
@@ -755,8 +755,67 @@ router.put('/:id', verifyToken, async (req, res) => {
         new Date(project.deadline).toISOString().split('T')[0] !== new Date(deadline).toISOString().split('T')[0];
       const isStartDateChanged = startDate && project.startDate &&
         new Date(project.startDate).toISOString().split('T')[0] !== new Date(startDate).toISOString().split('T')[0];
+      const isResubmitted = project.status === 'Rejected' && updates.status === 'Submitted';
+      const isFacultyChanged = updates.facultyId && String(updates.facultyId) !== String(project.facultyId?.id || project.facultyId);
 
-      if (isDeadlineChanged || isStartDateChanged) {
+      let faculty = populated.facultyId;
+      if (faculty && (typeof faculty === 'string' || !faculty.email)) {
+        faculty = (await Faculty.findById(faculty.id || faculty._id || faculty)) || faculty;
+      }
+
+      if (faculty && (isResubmitted || isFacultyChanged)) {
+        const leaderName = req.user.name || req.userDoc?.name || 'Team Leader';
+        const leaderRegNo = req.user.registerNumber || req.userDoc?.registerNumber || '';
+        const appUrl = process.env.APP_URL || 'http://localhost:5000';
+        const facultyProjectLink = `${appUrl}/faculty/index.html?projectId=${project.id}&action=review`;
+        const membersList = (populated.teamMemberIds || []).map(m => `${m.name} (${m.registerNumber || 'Student'})`).join(', ');
+        const facEmail = (faculty.email || '').trim().toLowerCase();
+
+        const facultyEmailHtml = generateProfessionalEmailTemplate({
+          headerTitle: 'Academic Faculty Mentorship Portal',
+          headerSubtitle: 'Project Resubmission & Approval Request',
+          recipientName: `Prof. ${faculty.name}`,
+          badgeText: isResubmitted ? 'Revised Project Resubmission' : 'New Project Assigned',
+          badgeColor: '#2563eb',
+          badgeBg: '#eff6ff',
+          title: `📌 Project Submitted for Approval: "${populated.projectName}"`,
+          summaryText: `Team led by ${leaderName} (${leaderRegNo || 'Leader'}) has submitted their revised project proposal "${populated.projectName}" for your review and approval.`,
+          details: [
+            { label: 'Project Name', value: populated.projectName, highlight: true },
+            { label: 'Domain / Topic', value: populated.domain || 'General' },
+            { label: 'Team Leader', value: `${leaderName} (${leaderRegNo || 'Leader'})` },
+            { label: 'Team Members', value: membersList || 'Assigned team members' },
+            { label: 'Department & Year', value: `${populated.department || 'CSE'} • ${populated.year || '3rd Year'}` },
+            { label: 'Submission Deadline', value: new Date(populated.deadline || deadline || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
+          ],
+          actionSteps: [
+            'Log into the Faculty Portal to review the updated project proposal.',
+            'Accept & Approve the project or provide feedback.',
+            'Monitor student progress and evaluate milestone deliverables.'
+          ],
+          buttonText: 'Review & Approve in Faculty Portal',
+          buttonUrl: facultyProjectLink,
+          alertType: 'info'
+        });
+
+        console.log(`[Project Update] Dispatching faculty email notification to ${facEmail} (${faculty.name}) for "${populated.projectName}"`);
+        await notifyUser({
+          userId: faculty.id || faculty._id,
+          userModel: 'Faculty',
+          userRole: 'faculty',
+          userEmail: facEmail,
+          userName: faculty.name,
+          userPhone: faculty.phone,
+          preferences: faculty.notificationPreferences || { inApp: true, email: true },
+          projectId: project.id,
+          type: `PROJECT_ASSIGNED_${project.id}_${Date.now()}`,
+          title: `📋 Project Submitted for Approval: "${populated.projectName}"`,
+          message: `Team led by ${leaderName} submitted the project "${populated.projectName}" for your review and approval.`,
+          emailHtml: facultyEmailHtml,
+          isDirectAction: true,
+          force: true
+        });
+      } else if (faculty && (isDeadlineChanged || isStartDateChanged)) {
         const studentName = req.user.name || req.userDoc?.name || 'Student / Team Leader';
         const oldDeadlineStr = project.deadline ? new Date(project.deadline).toLocaleDateString('en-GB') : 'N/A';
         const newDeadlineStr = deadline ? new Date(deadline).toLocaleDateString('en-GB') : oldDeadlineStr;
@@ -768,26 +827,19 @@ router.put('/:id', verifyToken, async (req, res) => {
           changeSummary = `start date from ${oldStartStr} to ${newStartStr}`;
         }
 
-        let faculty = populated.facultyId;
-        if (faculty && (typeof faculty === 'string' || !faculty.email)) {
-          faculty = (await Faculty.findById(faculty.id || faculty._id || faculty)) || faculty;
-        }
-
-        if (faculty) {
-          await notifyUser({
-            userId: faculty.id || faculty._id || (typeof faculty === 'string' ? faculty : null),
-            userModel: 'Faculty',
-            userRole: 'faculty',
-            userEmail: faculty.email,
-            userName: faculty.name,
-            userPhone: faculty.phone,
-            preferences: faculty.notificationPreferences,
-            projectId: project.id,
-            type: `PROJECT_DEADLINE_CHANGED_${Date.now()}`,
-            title: `📅 Project Deadline Changed: "${project.projectName}"`,
-            message: `Notice: ${studentName} updated the ${changeSummary} for project "${project.projectName}".`
-          });
-        }
+        await notifyUser({
+          userId: faculty.id || faculty._id || (typeof faculty === 'string' ? faculty : null),
+          userModel: 'Faculty',
+          userRole: 'faculty',
+          userEmail: faculty.email,
+          userName: faculty.name,
+          userPhone: faculty.phone,
+          preferences: faculty.notificationPreferences,
+          projectId: project.id,
+          type: `PROJECT_DEADLINE_CHANGED_${Date.now()}`,
+          title: `📅 Project Deadline Changed: "${project.projectName}"`,
+          message: `Notice: ${studentName} updated the ${changeSummary} for project "${project.projectName}".`
+        });
       }
     }
 

@@ -132,13 +132,22 @@ router.get('/:id', verifyToken, async (req, res) => {
 // ==========================================
 router.put('/:id', verifyToken, requireRole('admin'), async (req, res) => {
   try {
-    const { name, department, designation, phone, isActive } = req.body;
+    const { name, email, department, designation, phone, isActive } = req.body;
     const updates = {};
     if (name) updates.name = name.trim();
     if (department) updates.department = department.trim();
     if (designation) updates.designation = designation.trim();
     if (phone !== undefined) updates.phone = phone.trim();
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
+
+    if (email && email.trim()) {
+      const cleanEmail = email.trim().toLowerCase();
+      const existingEmail = await Faculty.findByEmail(cleanEmail);
+      if (existingEmail && String(existingEmail.id || existingEmail._id) !== String(req.params.id)) {
+        return res.status(400).json({ success: false, message: `Email "${cleanEmail}" is already used by another faculty member.` });
+      }
+      updates.email = cleanEmail;
+    }
 
     const updated = await Faculty.update(req.params.id, updates);
     if (!updated) {
@@ -183,7 +192,7 @@ router.put('/:id/reset-password', verifyToken, requireRole('admin'), async (req,
 // ==========================================
 router.delete('/:id', verifyToken, requireRole('admin'), async (req, res) => {
   try {
-    const assignedCount = await Projects.count(p => String(p.facultyId?.id || p.facultyId) === String(req.params.id));
+    const assignedCount = await Projects.count(p => String(p.facultyId?.id || p.facultyId?._id || p.facultyId) === String(req.params.id));
     if (assignedCount > 0) {
       return res.status(400).json({
         success: false,
@@ -204,15 +213,18 @@ router.delete('/:id', verifyToken, requireRole('admin'), async (req, res) => {
 router.get('/projects/assigned', verifyToken, requireRole('faculty'), async (req, res) => {
   try {
     const facultyId = req.user.id;
-    const projects = await Projects.listAll(p => String(p.facultyId?.id || p.facultyId) === String(facultyId));
+    const projects = await Projects.listAll(p => String(p.facultyId?.id || p.facultyId?._id || p.facultyId) === String(facultyId));
 
-    // Attach evaluation status and real-time progress
+    // Attach evaluation status, populated details, and real-time progress
     const enhanced = await Promise.all(
       projects.map(async p => {
+        const populated = await Projects.populate(p);
         const { projectProgress } = await recalculateProgress(p.id);
         const evalDoc = await Evaluations.findByProject(p.id);
         return {
-          ...p,
+          ...populated,
+          _id: p.id || p._id,
+          id: p.id || p._id,
           progress: projectProgress !== undefined ? projectProgress : (p.progress || 0),
           evaluation: evalDoc || null,
           isEvaluated: !!evalDoc
@@ -239,16 +251,19 @@ router.get('/projects/assigned/:id', verifyToken, requireRole('faculty', 'admin'
       return res.status(404).json({ success: false, message: 'Project not found.' });
     }
 
-    if (req.user.role === 'faculty' && String(project.facultyId?.id || project.facultyId) !== String(req.user.id)) {
+    if (req.user.role === 'faculty' && String(project.facultyId?.id || project.facultyId?._id || project.facultyId) !== String(req.user.id)) {
       return res.status(403).json({ success: false, message: 'Unauthorized. This project is not assigned to you.' });
     }
 
+    const populated = await Projects.populate(project);
     const { projectProgress } = await recalculateProgress(project.id);
     const evalDoc = await Evaluations.findByProject(project.id);
     return res.json({
       success: true,
       data: {
-        ...project,
+        ...populated,
+        _id: project.id || project._id,
+        id: project.id || project._id,
         progress: projectProgress !== undefined ? projectProgress : (project.progress || 0),
         evaluation: evalDoc || null,
         isEvaluated: !!evalDoc

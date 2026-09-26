@@ -144,6 +144,10 @@ function checkAuth(requiredRole) {
   const user = getUser();
 
   if (!token || !user) {
+    const returnPath = window.location.pathname + window.location.search;
+    if (returnPath && returnPath !== '/' && !returnPath.includes('index.html')) {
+      sessionStorage.setItem('authRedirect', returnPath);
+    }
     window.location.href = '/index.html';
     return false;
   }

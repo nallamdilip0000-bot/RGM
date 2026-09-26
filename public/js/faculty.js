@@ -569,10 +569,11 @@ function renderFacultyProjectsTable() {
         <td><span class="badge badge-${statusClass}">${p.status}</span></td>
         <td>${marksDisplay}</td>
         <td>
-          <div style="display: flex; gap: 6px;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
             <button class="btn btn-sm btn-secondary" onclick="openViewProjectModal('${p._id}')">View</button>
             <button class="btn btn-sm btn-outline-primary" onclick="openFacultyProjectDocuments('${p._id}')" title="Student Deliverables">📁 Files</button>
-            <button class="btn btn-sm btn-faculty" onclick="openEvaluationModal('${p._id}')">Grade</button>
+            <button class="btn btn-sm btn-faculty" onclick="openEvaluationModal('${p._id}')">${p.evaluation ? 'Re-Grade' : 'Grade'}</button>
+            ${p.evaluation ? `<button class="btn btn-sm btn-outline-success" onclick="exportProjectMarksPDF('${p._id}')" title="Print / Download Official Marks Sheet (PDF)" style="border-color: #059669; color: #059669; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;">📄 PDF</button>` : ''}
             <button class="btn btn-sm btn-danger" onclick="handleDeleteFacultyProject('${p._id}', '${escapeHtml(p.projectName)}')" title="Delete Project">Delete</button>
           </div>
         </td>
@@ -745,6 +746,29 @@ window.openViewProjectModal = async function(projectId) {
             <h4 style="font-size: 14px; margin-bottom: 10px; color: #1e3a8a;">TASKS</h4>
             <div style="max-height: 200px; overflow-y: auto;">${tasksHtml}</div>
           </div>
+
+          <!-- 5. Evaluation & Marks Sheet (if Evaluated) -->
+          ${p.evaluation ? `
+            <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <h4 style="font-size: 14px; margin: 0; color: #166534; font-weight: 800;">OFFICIAL PROJECT & INDIVIDUAL MARKS</h4>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="badge badge-completed" style="font-size: 13px; font-weight: 700; padding: 4px 10px;">Score: ${p.evaluation.totalMarks} / 100</span>
+                  <button type="button" class="btn btn-outline-primary btn-sm" onclick="exportProjectMarksPDF('${p._id}')" style="display: inline-flex; align-items: center; gap: 6px; border-color: #15803d; color: #15803d; font-weight: 700;">
+                    📄 Export Marks Sheet (PDF)
+                  </button>
+                </div>
+              </div>
+              <div class="rubric-box" style="margin-bottom: 8px;">
+                <div class="rubric-row"><span>1. Project Work & Scope Formulation</span><strong>${p.evaluation.projectWork}/30</strong></div>
+                <div class="rubric-row"><span>2. Technical Implementation & Prototype</span><strong>${p.evaluation.implementation}/25</strong></div>
+                <div class="rubric-row"><span>3. Documentation, Report & Synopsis</span><strong>${p.evaluation.documentation}/15</strong></div>
+                <div class="rubric-row"><span>4. Presentation & Viva Voce</span><strong>${p.evaluation.presentation}/20</strong></div>
+                <div class="rubric-row"><span>5. Team Coordination & Participation</span><strong>${p.evaluation.teamParticipation}/10</strong></div>
+              </div>
+              ${p.evaluation.feedback ? `<div style="font-size: 12.5px; color: #166534; margin-top: 8px; background: #dcfce7; padding: 8px 12px; border-radius: 6px;"><strong>Faculty Guide Feedback:</strong> ${escapeHtml(p.evaluation.feedback)}</div>` : ''}
+            </div>
+          ` : ''}
         </div>
       `;
     }
@@ -1105,7 +1129,12 @@ function renderCompletedEvaluations() {
               <div class="rubric-row"><span>Participation</span><strong>${p.evaluation.teamParticipation}/10</strong></div>
             </div>
             <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Evaluated On: ${formatDate(p.evaluation.evaluatedAt)}</div>
-            <button class="btn btn-secondary btn-sm" style="width: 100%;" onclick="openEvaluationModal('${p._id}')">Update Marks</button>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-outline-primary btn-sm" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-weight: 600;" onclick="exportProjectMarksPDF('${p._id}')" title="Print or Download PDF Marks Sheet">
+                📄 Marks Sheet (PDF)
+              </button>
+              <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="openEvaluationModal('${p._id}')">Update Marks</button>
+            </div>
           </div>
         </div>
       `).join('')}
@@ -2329,6 +2358,744 @@ window.deleteMeetingRecord = async function(id, topic) {
 window.loadFacultyAttendance = loadFacultyAttendance;
 window.renderFacultyAttendanceTable = renderFacultyAttendanceTable;
 window.openEditMeetingModal = openEditMeetingModal;
+
+// ==========================================================================
+// OFFICIAL PROJECT & INDIVIDUAL MARKS SHEET PDF GENERATION
+// ==========================================================================
+function getGradeDetails(marks) {
+  const m = Number(marks) || 0;
+  if (m >= 90) return { grade: 'O', label: 'Outstanding (Grade O)', badge: 'O (>=90)', color: '#059669', bg: '#ecfdf5' };
+  if (m >= 80) return { grade: 'A+', label: 'Excellent (Grade A+)', badge: 'A+ (80-89)', color: '#0284c7', bg: '#f0f9ff' };
+  if (m >= 70) return { grade: 'A', label: 'Very Good (Grade A)', badge: 'A (70-79)', color: '#4f46e5', bg: '#eef2ff' };
+  if (m >= 60) return { grade: 'B+', label: 'Good (Grade B+)', badge: 'B+ (60-69)', color: '#0891b2', bg: '#ecfeff' };
+  if (m >= 50) return { grade: 'B', label: 'Above Average (Grade B)', badge: 'B (50-59)', color: '#d97706', bg: '#fffbeb' };
+  if (m >= 40) return { grade: 'C', label: 'Pass (Grade C)', badge: 'C (40-49)', color: '#ea580c', bg: '#fff7ed' };
+  return { grade: 'F', label: 'Re-evaluation Required (Grade F)', badge: 'F (<40)', color: '#dc2626', bg: '#fef2f2' };
+}
+
+window.exportProjectMarksPDF = async function(projectId) {
+  let project = assignedProjects.find(item => item._id === projectId || item.id === projectId);
+  if (!project) {
+    try {
+      const res = await apiRequest(`/projects/${projectId}`);
+      if (res.success && res.data) project = res.data;
+    } catch (e) {}
+  }
+
+  if (!project) {
+    showToast('Project details not found.', 'error');
+    return;
+  }
+
+  // Load project evaluation, individual student evaluations, and attendance statistics
+  let evalDoc = project.evaluation || null;
+  let individualList = [];
+  let attendanceStats = {};
+
+  try {
+    const [evalRes, indRes, attRes] = await Promise.all([
+      apiRequest(`/evaluations/${projectId}`).catch(() => ({ success: false })),
+      apiRequest(`/evaluations/individual/${projectId}`).catch(() => ({ success: false })),
+      apiRequest(`/attendance/project/${projectId}`).catch(() => ({ success: false }))
+    ]);
+
+    if (evalRes.success && evalRes.data) evalDoc = evalRes.data;
+    if (indRes.success && Array.isArray(indRes.data)) individualList = indRes.data;
+    if (attRes.success && attRes.studentStats) attendanceStats = attRes.studentStats;
+  } catch (e) {
+    console.warn('Error loading marks details for PDF:', e.message);
+  }
+
+  // Fallback to currently filled inputs in evaluation modal if not saved yet
+  if (!evalDoc) {
+    const activeModalId = document.getElementById('evalProjectId')?.value;
+    if (activeModalId === projectId) {
+      const { pw, imp, doc, pres, tp, total } = calculateRubricTotal();
+      const feedback = document.getElementById('evalOverallFeedback')?.value.trim() || '';
+      evalDoc = {
+        projectWork: pw,
+        implementation: imp,
+        documentation: doc,
+        presentation: pres,
+        teamParticipation: tp,
+        totalMarks: total,
+        feedback,
+        evaluatedAt: new Date().toISOString()
+      };
+    }
+  }
+
+  const pw = evalDoc ? Number(evalDoc.projectWork || 0) : 0;
+  const imp = evalDoc ? Number(evalDoc.implementation || 0) : 0;
+  const doc = evalDoc ? Number(evalDoc.documentation || 0) : 0;
+  const pres = evalDoc ? Number(evalDoc.presentation || 0) : 0;
+  const tp = evalDoc ? Number(evalDoc.teamParticipation || 0) : 0;
+  const totalScore = evalDoc ? Number(evalDoc.totalMarks || (pw + imp + doc + pres + tp)) : 0;
+  const overallFeedback = evalDoc?.feedback || 'Satisfactory project execution and technical deliverable submission.';
+  const evalDateStr = evalDoc?.evaluatedAt ? new Date(evalDoc.evaluatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-IN');
+  const projectGrade = getGradeDetails(totalScore);
+
+  const facultyName = currentFaculty?.name || 'Faculty Guide';
+  const facultyIdStr = currentFaculty?.facultyId || 'FAC-GUIDE';
+  const facultyDept = project.department || currentFaculty?.department || 'Computer Science & Engineering';
+  const facultyDesig = currentFaculty?.designation || 'Assistant Professor / Project Guide';
+  const academicYear = project.year || '3rd Year';
+  const leaderName = project.teamLeaderId?.name || (project.teamMemberIds?.[0]?.name) || 'Team Leader';
+  const leaderReg = project.teamLeaderId?.registerNumber || (project.teamMemberIds?.[0]?.registerNumber) || 'N/A';
+
+  // Map individual student members
+  const rawMembers = Array.isArray(project.teamMemberIds) ? project.teamMemberIds : (Array.isArray(project.teamMembers) ? project.teamMembers : []);
+  const studentRows = rawMembers.map((m, idx) => {
+    const sId = String(m._id || m.id);
+    const indItem = individualList.find(x => String(x.studentId?._id || x.studentId?.id || x.studentId) === sId);
+    
+    // Check if modal has active input
+    let marks = indItem ? indItem.marks : totalScore;
+    let personalFeedback = indItem?.feedback || '';
+
+    const modalInput = document.querySelector(`.ind-student-mark[data-student="${sId}"]`);
+    if (modalInput) marks = parseInt(modalInput.value, 10) || marks;
+    const modalFb = document.querySelector(`.ind-student-feedback[data-student="${sId}"]`);
+    if (modalFb && modalFb.value.trim()) personalFeedback = modalFb.value.trim();
+
+    const isLeader = Boolean(m.isLeader || idx === 0 || String(m._id || m.id) === String(project.teamLeaderId?._id || project.teamLeaderId?.id || project.teamLeaderId));
+    const gradeInfo = getGradeDetails(marks);
+    const attInfo = attendanceStats[sId] || { totalMeetings: 0, presentCount: 0, percentage: 0 };
+    const attDisplay = attInfo.totalMeetings > 0 ? `${attInfo.presentCount}/${attInfo.totalMeetings} (${attInfo.percentage}%)` : '100% (Regular)';
+
+    return {
+      sNo: idx + 1,
+      name: m.name || 'Student Member',
+      registerNumber: m.registerNumber || 'N/A',
+      department: m.department || facultyDept,
+      year: m.year || academicYear,
+      isLeader,
+      role: isLeader ? 'Team Leader' : 'Team Member',
+      projectMarks: totalScore,
+      individualMarks: marks,
+      grade: gradeInfo.grade,
+      gradeLabel: gradeInfo.label,
+      attendance: attDisplay,
+      feedback: personalFeedback || (isLeader ? 'Led project coordination, architecture design, and technical integration.' : 'Actively contributed to module development, testing, and documentation.')
+    };
+  });
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Please allow popups to generate or print the official Marks Sheet PDF.');
+    return;
+  }
+
+  const htmlDoc = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Official_Project_Marks_Sheet_${project.projectName.replace(/\\s+/g, '_')}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 12mm 12mm 12mm;
+    }
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    body {
+      color: #0f172a;
+      margin: 0;
+      padding: 20px;
+      font-size: 11.5px;
+      line-height: 1.4;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .no-print-toolbar {
+      position: sticky;
+      top: 0;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 20px;
+      margin: -20px -20px 20px -20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 9999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .btn-action {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .btn-action:hover {
+      background: #1d4ed8;
+    }
+    .btn-secondary-action {
+      background: #475569;
+      color: #ffffff;
+      border: none;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    @media print {
+      .no-print-toolbar { display: none !important; }
+      body { padding: 0 !important; }
+      @page { margin: 10mm 10mm; }
+    }
+    
+    .inst-header {
+      text-align: center;
+      border-bottom: 2.5px solid #1e3a8a;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .inst-title {
+      font-size: 16.5px;
+      font-weight: 900;
+      color: #1e3a8a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 2px 0;
+    }
+    .inst-sub {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #475569;
+      margin: 0 0 2px 0;
+    }
+    .inst-dept {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0369a1;
+      text-transform: uppercase;
+      margin: 4px 0 0 0;
+    }
+    .sheet-title-badge {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1.5px solid #bfdbfe;
+      padding: 4px 16px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-top: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .meta-box {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 11px;
+    }
+    .meta-box td {
+      padding: 5.5px 10px;
+      border: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+    .meta-lbl {
+      width: 20%;
+      font-weight: 700;
+      color: #334155;
+      background: #f1f5f9;
+    }
+    .meta-val {
+      width: 30%;
+      color: #0f172a;
+    }
+
+    .section-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      background: #e2e8f0;
+      padding: 5px 8px;
+      border-radius: 4px;
+      margin: 14px 0 6px 0;
+      letter-spacing: 0.4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+      font-size: 10.5px;
+    }
+    .data-table th {
+      background: #1e3a8a;
+      color: #ffffff;
+      font-weight: 700;
+      padding: 6px 8px;
+      border: 1px solid #1e3a8a;
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    .data-table td {
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      vertical-align: middle;
+    }
+    .data-table tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .badge-role-leader {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 9.5px;
+      text-transform: uppercase;
+    }
+    .badge-role-member {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 9.5px;
+    }
+
+    .grade-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 800;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .feedback-callout {
+      background: #fafafa;
+      border-left: 3px solid #0284c7;
+      border-top: 1px solid #e2e8f0;
+      border-right: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 7px 12px;
+      margin: 6px 0 12px 0;
+      font-size: 11px;
+      color: #334155;
+    }
+
+    .sig-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 36px;
+      padding-top: 10px;
+      page-break-inside: avoid;
+    }
+    .sig-box {
+      border-top: 1.5px solid #0f172a;
+      text-align: center;
+      padding-top: 6px;
+      font-size: 10.5px;
+    }
+    .sig-name {
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 1px;
+    }
+    .sig-sub {
+      font-size: 9.5px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- No-Print Top Controls -->
+  <div class="no-print-toolbar">
+    <div style="font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+      <span>📑 RGMCET Project Milestone &amp; Marks Supervision Portal</span>
+      <span style="font-size: 11px; font-weight: 500; opacity: 0.8;">(Official Evaluation PDF)</span>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn-action" onclick="window.print()">
+        🖨️ Print / Save as PDF
+      </button>
+      <button class="btn-secondary-action" onclick="window.close()">
+        ✖ Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Institution Header -->
+  <div class="inst-header">
+    <h1 class="inst-title">Rajeev Gandhi Memorial College of Engineering &amp; Technology</h1>
+    <p class="inst-sub">(AUTONOMOUS — Approved by AICTE, Accredited by NAAC with 'A+' Grade &amp; NBA Tier-1)</p>
+    <p class="inst-sub">Affiliated to JNTUA, Ananthapuramu &bull; Nandyal - 518501, Andhra Pradesh</p>
+    <div class="inst-dept">Department of ${escapeHtml(facultyDept)}</div>
+    <div>
+      <span class="sheet-title-badge">Official Project &amp; Individual Student Marks Award Sheet</span>
+    </div>
+  </div>
+
+  <!-- Project Overview Metadata Table -->
+  <table class="meta-box">
+    <tr>
+      <td class="meta-lbl">Project Title:</td>
+      <td class="meta-val" colspan="3"><strong style="font-size: 12px; color: #1e3a8a;">${escapeHtml(project.projectName)}</strong></td>
+    </tr>
+    <tr>
+      <td class="meta-lbl">Domain / Specialization:</td>
+      <td class="meta-val">${escapeHtml(project.domain || 'Core / Applied Engineering')}</td>
+      <td class="meta-lbl">Academic Batch &amp; Year:</td>
+      <td class="meta-val"><strong>${escapeHtml(academicYear)}</strong> (${escapeHtml(facultyDept)})</td>
+    </tr>
+    <tr>
+      <td class="meta-lbl">Team Leader:</td>
+      <td class="meta-val">${escapeHtml(leaderName)} <span style="color: #64748b;">(${escapeHtml(leaderReg)})</span></td>
+      <td class="meta-lbl">Total Team Strength:</td>
+      <td class="meta-val"><strong>${studentRows.length} Student Member(s)</strong></td>
+    </tr>
+    <tr>
+      <td class="meta-lbl">Faculty Guide / Evaluator:</td>
+      <td class="meta-val"><strong>${escapeHtml(facultyName)}</strong> <span style="font-size: 10px; color: #64748b;">(${escapeHtml(facultyIdStr)})</span></td>
+      <td class="meta-lbl">Guide Designation:</td>
+      <td class="meta-val">${escapeHtml(facultyDesig)}</td>
+    </tr>
+    <tr>
+      <td class="meta-lbl">Evaluation Date:</td>
+      <td class="meta-val">${evalDateStr}</td>
+      <td class="meta-lbl">Overall Project Score:</td>
+      <td class="meta-val">
+        <strong style="font-size: 13px; color: ${projectGrade.color};">${totalScore} / 100</strong>
+        <span class="grade-badge" style="background: ${projectGrade.bg}; color: ${projectGrade.color}; margin-left: 6px;">${projectGrade.badge}</span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Section 1: Standard Evaluation Rubric Breakdown (100 Marks Max) -->
+  <div class="section-title">
+    <span>A. Project Rubric Evaluation Breakdown (Total: 100 Marks Max)</span>
+    <span style="font-size: 11px; font-weight: 700; color: #1e40af;">Awarded: ${totalScore} / 100</span>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 8%;">S.No</th>
+        <th style="width: 54%;">Evaluation Criteria &amp; Deliverables Scope</th>
+        <th style="width: 18%; text-align: center;">Max Marks</th>
+        <th style="width: 20%; text-align: center;">Marks Awarded</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align: center;">1</td>
+        <td><strong>Project Scope, Problem Definition &amp; Methodology</strong> (Requirements, literature survey, baseline architecture)</td>
+        <td style="text-align: center;">30</td>
+        <td style="text-align: center;"><strong>${pw} / 30</strong></td>
+      </tr>
+      <tr>
+        <td style="text-align: center;">2</td>
+        <td><strong>System Implementation, Code Quality &amp; Prototype</strong> (Algorithm design, modular code, technical depth)</td>
+        <td style="text-align: center;">25</td>
+        <td style="text-align: center;"><strong>${imp} / 25</strong></td>
+      </tr>
+      <tr>
+        <td style="text-align: center;">3</td>
+        <td><strong>Documentation, Report &amp; Project Deliverables</strong> (SRS, UML diagrams, test cases, synopsis report)</td>
+        <td style="text-align: center;">15</td>
+        <td style="text-align: center;"><strong>${doc} / 15</strong></td>
+      </tr>
+      <tr>
+        <td style="text-align: center;">4</td>
+        <td><strong>Presentation, Demo &amp; Technical Viva-Voce</strong> (Demo quality, technical question answering, clarity)</td>
+        <td style="text-align: center;">20</td>
+        <td style="text-align: center;"><strong>${pres} / 20</strong></td>
+      </tr>
+      <tr>
+        <td style="text-align: center;">5</td>
+        <td><strong>Team Coordination, Sprint Deadlines &amp; Participation</strong> (Milestone adherence, collaboration)</td>
+        <td style="text-align: center;">10</td>
+        <td style="text-align: center;"><strong>${tp} / 10</strong></td>
+      </tr>
+      <tr style="background: #eff6ff; font-weight: 800;">
+        <td colspan="2" style="text-align: right; padding-right: 14px; text-transform: uppercase;">Total Evaluated Project Marks:</td>
+        <td style="text-align: center;">100</td>
+        <td style="text-align: center; color: #1e40af; font-size: 12px;">${totalScore} / 100</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="feedback-callout">
+    <strong>Faculty Mentor General Remarks:</strong> ${escapeHtml(overallFeedback)}
+  </div>
+
+  <!-- Section 2: Individual Student Allocated Marks & Assessment (Table) -->
+  <div class="section-title">
+    <span>B. Individual Student Allocated Marks &amp; Assessment Sheet (${studentRows.length} Students)</span>
+    <span style="font-size: 10px; font-weight: 600; color: #475569;">Evaluated by Guide</span>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 5%; text-align: center;">#</th>
+        <th style="width: 14%;">Reg. Number</th>
+        <th style="width: 20%;">Student Full Name</th>
+        <th style="width: 12%; text-align: center;">Role</th>
+        <th style="width: 12%; text-align: center;">Marks (100)</th>
+        <th style="width: 10%; text-align: center;">Grade</th>
+        <th style="width: 12%; text-align: center;">Attendance</th>
+        <th style="width: 15%;">Guide Feedback / Viva Note</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${studentRows.map(s => {
+        const grade = getGradeDetails(s.individualMarks);
+        return `
+          <tr>
+            <td style="text-align: center; font-weight: 700;">${s.sNo}</td>
+            <td><strong>${escapeHtml(s.registerNumber)}</strong></td>
+            <td>${escapeHtml(s.name)}</td>
+            <td style="text-align: center;">
+              <span class="${s.isLeader ? 'badge-role-leader' : 'badge-role-member'}">${s.role}</span>
+            </td>
+            <td style="text-align: center; font-weight: 800; font-size: 12px; color: ${grade.color};">
+              ${s.individualMarks} / 100
+            </td>
+            <td style="text-align: center;">
+              <span class="grade-badge" style="background: ${grade.bg}; color: ${grade.color};">${grade.grade}</span>
+            </td>
+            <td style="text-align: center; font-size: 10px; color: #475569;">
+              ${escapeHtml(s.attendance)}
+            </td>
+            <td style="font-size: 10px; color: #334155;">
+              ${escapeHtml(s.feedback)}
+            </td>
+          </tr>
+        `;
+      }).join('')}
+    </tbody>
+  </table>
+
+  <!-- Signatures Section -->
+  <div class="sig-section">
+    <div class="sig-box">
+      <div style="height: 36px;"></div>
+      <div class="sig-name">Prof. ${escapeHtml(facultyName)}</div>
+      <div class="sig-sub">Faculty Guide / Mentor &bull; ${escapeHtml(facultyIdStr)}</div>
+      <div class="sig-sub">${escapeHtml(facultyDept)}</div>
+    </div>
+    <div class="sig-box">
+      <div style="height: 36px;"></div>
+      <div class="sig-name">Project Coordinator</div>
+      <div class="sig-sub">Department Project Committee</div>
+      <div class="sig-sub">${escapeHtml(facultyDept)}</div>
+    </div>
+    <div class="sig-box">
+      <div style="height: 36px;"></div>
+      <div class="sig-name">Head of the Department (HOD)</div>
+      <div class="sig-sub">Dept. of ${escapeHtml(facultyDept)}</div>
+      <div class="sig-sub">[ OFFICIAL DEPARTMENT SEAL ]</div>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    });
+  <\/script>
+</body>
+</html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(htmlDoc);
+  printWindow.document.close();
+};
+
+window.exportCurrentProjectMarksPDF = function() {
+  const projectId = document.getElementById('evalProjectId')?.value;
+  if (!projectId) {
+    showToast('Please select an active project to export marks sheet.', 'warning');
+    return;
+  }
+  exportProjectMarksPDF(projectId);
+};
+
+window.exportAllCompletedMarksPDF = async function() {
+  const completed = assignedProjects.filter(p => p.isEvaluated && p.evaluation);
+  if (completed.length === 0) {
+    showToast('No completed project evaluations found to export.', 'warning');
+    return;
+  }
+
+  const facultyName = currentFaculty?.name || 'Faculty Guide';
+  const facultyDept = currentFaculty?.department || 'Computer Science & Engineering';
+  const facultyIdStr = currentFaculty?.facultyId || 'FACULTY';
+  const nowStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  // Gather individual marks for all completed projects
+  const consolidatedProjects = await Promise.all(
+    completed.map(async (p, idx) => {
+      let indList = [];
+      try {
+        const indRes = await apiRequest(`/evaluations/individual/${p._id || p.id}`);
+        if (indRes.success && Array.isArray(indRes.data)) indList = indRes.data;
+      } catch (e) {}
+
+      const rawMembers = Array.isArray(p.teamMemberIds) ? p.teamMemberIds : [];
+      const students = rawMembers.map((m, mIdx) => {
+        const sId = String(m._id || m.id);
+        const item = indList.find(x => String(x.studentId?._id || x.studentId?.id || x.studentId) === sId);
+        const marks = item ? item.marks : (p.evaluation.totalMarks || 0);
+        return {
+          name: m.name,
+          registerNumber: m.registerNumber,
+          isLeader: mIdx === 0 || m.isLeader,
+          marks,
+          grade: getGradeDetails(marks).grade
+        };
+      });
+
+      return {
+        seq: idx + 1,
+        projectName: p.projectName,
+        domain: p.domain || 'Engineering',
+        year: p.year || '3rd Year',
+        department: p.department || facultyDept,
+        totalMarks: p.evaluation.totalMarks || 0,
+        grade: getGradeDetails(p.evaluation.totalMarks || 0).grade,
+        students
+      };
+    })
+  );
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Please allow popups to download the Master Marks PDF.');
+    return;
+  }
+
+  const htmlDoc = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Master_Project_Marks_Report_${facultyName.replace(/\\s+/g, '_')}</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm 10mm; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+    body { color: #0f172a; margin: 0; padding: 16px; font-size: 11px; line-height: 1.35; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { position: sticky; top: 0; background: #0f172a; color: #fff; padding: 10px 16px; margin: -16px -16px 16px -16px; display: flex; justify-content: space-between; align-items: center; }
+    .btn-print { background: #2563eb; color: #fff; border: none; padding: 6px 16px; font-weight: 700; border-radius: 4px; cursor: pointer; }
+    @media print { .no-print { display: none !important; } body { padding: 0 !important; } }
+    .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 8px; margin-bottom: 12px; }
+    .inst-title { font-size: 16px; font-weight: 900; color: #1e3a8a; text-transform: uppercase; margin: 0; }
+    .inst-sub { font-size: 10.5px; color: #475569; margin: 2px 0 0 0; }
+    .table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10.5px; }
+    .table th { background: #1e3a8a; color: #fff; padding: 6px 8px; border: 1px solid #1e3a8a; text-align: left; }
+    .table td { padding: 5px 8px; border: 1px solid #cbd5e1; vertical-align: top; }
+    .table tr:nth-child(even) td { background: #f8fafc; }
+    .sig-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 40px; page-break-inside: avoid; }
+    .sig-col { border-top: 1.5px solid #0f172a; text-align: center; padding-top: 6px; font-size: 10.5px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <span style="font-weight: 700;">Consolidated Faculty Marks Master Sheet</span>
+    <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  </div>
+  <div class="header">
+    <h1 class="inst-title">Rajeev Gandhi Memorial College of Engineering &amp; Technology</h1>
+    <p class="inst-sub">Autonomous &bull; Department of ${escapeHtml(facultyDept)}</p>
+    <div style="font-weight: 800; color: #0284c7; font-size: 12px; margin-top: 4px; text-transform: uppercase;">
+      Consolidated Project &amp; Student Marks Master Award Sheet (${consolidatedProjects.length} Projects Evaluated)
+    </div>
+    <p style="font-size: 10px; color: #64748b; margin-top: 2px;">Faculty Mentor: <strong>Prof. ${escapeHtml(facultyName)} (${escapeHtml(facultyIdStr)})</strong> &bull; Generated Date: ${nowStr}</p>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th style="width: 4%; text-align: center;">#</th>
+        <th style="width: 25%;">Project Title &amp; Domain</th>
+        <th style="width: 10%; text-align: center;">Batch</th>
+        <th style="width: 10%; text-align: center;">Project Score</th>
+        <th style="width: 51%;">Individual Student Allocated Marks &amp; Grades</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${consolidatedProjects.map(p => `
+        <tr>
+          <td style="text-align: center; font-weight: 700;">${p.seq}</td>
+          <td><strong>${escapeHtml(p.projectName)}</strong><div style="font-size: 9.5px; color: #64748b;">${escapeHtml(p.domain)}</div></td>
+          <td style="text-align: center;">${escapeHtml(p.year)}</td>
+          <td style="text-align: center; font-weight: 800; color: #1e40af;">${p.totalMarks}/100 (${p.grade})</td>
+          <td>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px;">
+              ${p.students.map(s => `
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 6px; font-size: 10px;">
+                  <div style="font-weight: 600; color: #0f172a;">${escapeHtml(s.name)} ${s.isLeader ? '<span style="color: #2563eb; font-size: 9px;">[Leader]</span>' : ''}</div>
+                  <div style="color: #64748b; font-size: 9px;">${escapeHtml(s.registerNumber)} &bull; <strong style="color: #059669;">${s.marks}/100 (${s.grade})</strong></div>
+                </div>
+              `).join('')}
+            </div>
+          </td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+
+  <div class="sig-row">
+    <div class="sig-col">
+      Prof. ${escapeHtml(facultyName)}<br><span style="font-weight: 400; font-size: 9.5px; color: #64748b;">Faculty Guide / Mentor</span>
+    </div>
+    <div class="sig-col">
+      Project Coordinator<br><span style="font-weight: 400; font-size: 9.5px; color: #64748b;">Department of ${escapeHtml(facultyDept)}</span>
+    </div>
+    <div class="sig-col">
+      Head of Department (HOD)<br><span style="font-weight: 400; font-size: 9.5px; color: #64748b;">Dept. of ${escapeHtml(facultyDept)}</span>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => { window.print(); }, 500);
+    });
+  <\/script>
+</body>
+</html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(htmlDoc);
+  printWindow.document.close();
+};
 
 
 

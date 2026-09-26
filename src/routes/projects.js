@@ -229,31 +229,38 @@ router.post('/', verifyToken, requireRole('student'), async (req, res) => {
       isDirectAction: true
     });
 
-    // Notify team members who have registered user accounts in Firebase
+    // Notify team members who have registered user accounts in Firebase or entered emails
     const projectUrl = `${appUrl}/student/index.html?projectId=${project.id}`;
 
     for (const member of parsedMembers) {
-      if (String(member.id) !== String(teamLeaderId)) {
+      const isLeader = String(member.id) === String(teamLeaderId) ||
+        (member.registerNumber && studentUser?.registerNumber && member.registerNumber.toUpperCase() === studentUser.registerNumber.toUpperCase()) ||
+        (member.email && (studentUser?.email || req.user.email) && member.email.toLowerCase() === (studentUser?.email || req.user.email).toLowerCase());
+
+      if (!isLeader) {
         let studentAccount = null;
-        if (!String(member.id).startsWith('mem_')) {
+        if (member.id && !String(member.id).startsWith('mem_')) {
           studentAccount = await Users.findById(member.id);
         }
         if (!studentAccount && member.registerNumber) {
           studentAccount = await Users.findOne(u => u.registerNumber && u.registerNumber.toUpperCase() === member.registerNumber.toUpperCase());
         }
+        if (!studentAccount && member.email) {
+          studentAccount = await Users.findByEmail(member.email);
+        }
 
-        const targetEmail = studentAccount?.email || member.email;
-        const targetName = studentAccount?.name || member.name || 'Student';
-        const targetPhone = studentAccount?.phone || member.phone;
-        const targetId = studentAccount?.id || member.id;
+        const targetEmail = (studentAccount?.email || member.email || '').trim().toLowerCase();
+        const targetName = studentAccount?.name || member.name || 'Student Member';
+        const targetPhone = studentAccount?.phone || member.phone || '';
+        const targetId = studentAccount?.id || member.id || targetEmail;
 
         if (targetEmail || targetId) {
           const notifTitle = `👥 Added to New Project: "${project.projectName}"`;
-          const notifMsg = `You have been added as a team member to "${project.projectName}" led by ${req.user.name}. Assigned faculty guide: ${faculty.name}.`;
+          const notifMsg = `You have been added as a team member to "${project.projectName}" led by ${req.user.name}. Assigned faculty guide: Prof. ${faculty.name}.`;
 
           const emailHtml = generateProfessionalEmailTemplate({
-            headerTitle: 'Project Milestone Tracking Portal',
-            headerSubtitle: 'Team Collaboration Notification',
+            headerTitle: 'Rajeev Gandhi Memorial College of Engg. & Tech.',
+            headerSubtitle: 'Academic Project Milestone Supervision Portal',
             recipientName: targetName,
             badgeText: 'Team Member Added',
             badgeColor: '#059669',
@@ -262,8 +269,8 @@ router.post('/', verifyToken, requireRole('student'), async (req, res) => {
             summaryText: `Your peer ${req.user.name} has added you to their academic project team for the ongoing semester.`,
             details: [
               { label: 'Project Name', value: project.projectName, highlight: true },
-              { label: 'Team Leader', value: req.user.name },
-              { label: 'Assigned Faculty', value: faculty.name },
+              { label: 'Team Leader', value: `${req.user.name} (${req.user.registerNumber || 'Leader'})` },
+              { label: 'Assigned Faculty Mentor', value: `Prof. ${faculty.name}` },
               { label: 'Final Deadline', value: new Date(project.deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
               { label: 'Department / Year', value: `${studentDept} (${studentYear})` }
             ],
@@ -277,6 +284,8 @@ router.post('/', verifyToken, requireRole('student'), async (req, res) => {
             alertType: 'success'
           });
 
+          console.log(`[Team Member Added Live Email] Dispatching to ${targetEmail || 'No-Email'} (${targetName}) for project "${project.projectName}"`);
+
           await notifyUser({
             userId: targetId,
             userModel: 'User',
@@ -286,10 +295,12 @@ router.post('/', verifyToken, requireRole('student'), async (req, res) => {
             userPhone: targetPhone,
             preferences: studentAccount?.notificationPreferences || { inApp: true, email: true },
             projectId: project.id,
-            type: 'ADDED_TO_PROJECT',
+            type: `ADDED_TO_PROJECT_${project.id}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
             title: notifTitle,
             message: notifMsg,
-            emailHtml
+            emailHtml,
+            isDirectAction: true,
+            force: true
           });
         }
       }
@@ -476,6 +487,105 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     const updated = await Projects.update(project.id, updates);
     const populated = await Projects.populate(updated);
+
+    // Notify any newly added team members in this update
+    if (rawMembers && updates.teamMemberIds && updates.teamMemberIds.length > 0) {
+      try {
+        const oldMembers = Array.isArray(project.teamMemberIds) ? project.teamMemberIds : (Array.isArray(project.teamMembers) ? project.teamMembers : []);
+        const oldRegs = new Set(oldMembers.map(m => (m?.registerNumber || '').toUpperCase()).filter(Boolean));
+        const oldIds = new Set(oldMembers.map(m => String(m?.id || m?._id || m)).filter(Boolean));
+        const oldEmails = new Set(oldMembers.map(m => (m?.email || '').toLowerCase()).filter(Boolean));
+
+        const appUrl = process.env.APP_URL || 'http://localhost:5000';
+        const projectUrl = `${appUrl}/student/index.html?projectId=${project.id}`;
+        const leaderName = req.user.name || 'Team Leader';
+
+        let facultyDoc = populated.facultyId || project.facultyId;
+        if (facultyDoc && (typeof facultyDoc === 'string' || !facultyDoc.name)) {
+          facultyDoc = (await Faculty.findById(facultyDoc.id || facultyDoc._id || facultyDoc)) || facultyDoc;
+        }
+        const facultyName = facultyDoc?.name || 'Faculty Guide';
+
+        for (const member of updates.teamMemberIds) {
+          const memReg = (member.registerNumber || '').toUpperCase();
+          const memId = String(member.id || member._id || '');
+          const memEmail = (member.email || '').toLowerCase();
+
+          const isOld = (memReg && oldRegs.has(memReg)) || (memId && oldIds.has(memId)) || (memEmail && oldEmails.has(memEmail));
+          const isLeader = member.isLeader || memId === String(project.teamLeaderId?.id || project.teamLeaderId) || (memReg && memReg === (req.user.registerNumber || '').toUpperCase());
+
+          if (!isOld && !isLeader) {
+            let studentAccount = null;
+            if (memId && !memId.startsWith('mem_')) {
+              studentAccount = await Users.findById(memId);
+            }
+            if (!studentAccount && memReg) {
+              studentAccount = await Users.findOne(u => u.registerNumber && u.registerNumber.toUpperCase() === memReg);
+            }
+            if (!studentAccount && memEmail) {
+              studentAccount = await Users.findByEmail(memEmail);
+            }
+
+            const targetEmail = (studentAccount?.email || member.email || '').trim().toLowerCase();
+            const targetName = studentAccount?.name || member.name || 'Student Member';
+            const targetPhone = studentAccount?.phone || member.phone || '';
+            const targetId = studentAccount?.id || memId || targetEmail;
+
+            if (targetEmail || targetId) {
+              const notifTitle = `👥 Added to Project: "${project.projectName}"`;
+              const notifMsg = `You have been added as a team member to "${project.projectName}" led by ${leaderName}. Assigned faculty guide: Prof. ${facultyName}.`;
+
+              const emailHtml = generateProfessionalEmailTemplate({
+                headerTitle: 'Rajeev Gandhi Memorial College of Engg. & Tech.',
+                headerSubtitle: 'Academic Project Milestone Supervision Portal',
+                recipientName: targetName,
+                badgeText: 'Team Member Added',
+                badgeColor: '#059669',
+                badgeBg: '#ecfdf5',
+                title: notifTitle,
+                summaryText: `Your peer ${leaderName} has added you to their academic project team for the ongoing semester.`,
+                details: [
+                  { label: 'Project Name', value: project.projectName, highlight: true },
+                  { label: 'Team Leader', value: leaderName },
+                  { label: 'Assigned Faculty Mentor', value: `Prof. ${facultyName}` },
+                  { label: 'Final Deadline', value: new Date(updated.deadline || project.deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
+                  { label: 'Department / Year', value: `${updated.department || project.department || 'CSE'} (${updated.year || project.year || '3rd Year'})` }
+                ],
+                actionSteps: [
+                  'Log into the Student Portal to view project milestones and requirements.',
+                  'Coordinate with your team leader for task breakdowns and initial planning.',
+                  'Keep track of milestone due dates to ensure timely submissions.'
+                ],
+                buttonText: 'Open Project in Student Portal',
+                buttonUrl: projectUrl,
+                alertType: 'success'
+              });
+
+              console.log(`[New Team Member Added in Update Live Email] Dispatching to ${targetEmail || 'No-Email'} (${targetName}) for project "${project.projectName}"`);
+
+              await notifyUser({
+                userId: targetId,
+                userModel: 'User',
+                userRole: 'student',
+                userEmail: targetEmail,
+                userName: targetName,
+                userPhone: targetPhone,
+                preferences: studentAccount?.notificationPreferences || { inApp: true, email: true },
+                projectId: project.id,
+                type: `ADDED_TO_PROJECT_${project.id}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+                title: notifTitle,
+                message: notifMsg,
+                emailHtml,
+                isDirectAction: true,
+                force: true
+              });
+            }
+          }
+        }
+      } catch (memberNotifErr) {
+        console.warn('[Project Update] Team member notification warning:', memberNotifErr.message);
+      }
+    }
 
     // If student/team leader modified project deadline or start date, notify the faculty mentor
     if (req.user.role === 'student' && populated && populated.facultyId) {

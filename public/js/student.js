@@ -509,8 +509,34 @@ function addEditManualMember() {
   const email = emailInput ? emailInput.value.trim().toLowerCase() : '';
   const phone = phoneInput ? phoneInput.value.trim().replace(/\s+/g, '') : '';
 
-  if (!name || !registerNumber) {
-    showToast('Please enter both student name and register number.', 'warning');
+  if (!name) {
+    showToast('Please enter the team member name', 'warning');
+    nameInput?.focus();
+    return;
+  }
+  if (!registerNumber) {
+    showToast('Please enter the team member register number', 'warning');
+    regInput?.focus();
+    return;
+  }
+  if (!email) {
+    showToast('Please enter the team member email address', 'warning');
+    emailInput?.focus();
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Please enter a valid email address (e.g. student@rgm.edu)', 'warning');
+    emailInput?.focus();
+    return;
+  }
+  if (!phone) {
+    showToast('Please enter the team member phone number', 'warning');
+    phoneInput?.focus();
+    return;
+  }
+  if (!/^\+?[0-9]{10,14}$/.test(phone)) {
+    showToast('Please enter a valid 10-digit mobile number (e.g. 9876543210)', 'warning');
+    phoneInput?.focus();
     return;
   }
 
@@ -519,6 +545,14 @@ function addEditManualMember() {
   );
   if (isDuplicateReg) {
     showToast(`Member with register number "${registerNumber}" is already in the team.`, 'warning');
+    return;
+  }
+
+  const isDuplicateEmail = editingProjectMembers.some(m =>
+    m.email && m.email.toLowerCase() === email
+  );
+  if (isDuplicateEmail) {
+    showToast(`Member with email "${email}" is already in the team.`, 'warning');
     return;
   }
 

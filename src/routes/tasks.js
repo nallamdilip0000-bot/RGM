@@ -178,7 +178,8 @@ router.post('/', verifyToken, async (req, res) => {
         title: notifTitle,
         message: notifMsg,
         emailHtml,
-        isDirectAction: true
+        isDirectAction: true,
+        force: true
       });
     }
 

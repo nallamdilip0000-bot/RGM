@@ -54,12 +54,18 @@ const sendEmail = async ({ to, subject, html, text }) => {
 
   if (activeTransporter) {
     try {
+      const senderEmail = process.env.EMAIL_USER || from;
       const info = await activeTransporter.sendMail({
         from,
         to: cleanTo,
+        replyTo: senderEmail,
         subject,
-        text: text || html.replace(/<[^>]+>/g, ''),
-        html
+        text: text || html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(),
+        html,
+        headers: {
+          'X-Entity-Ref-ID': `rgm-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          'X-Auto-Response-Suppress': 'OOF, AutoReply'
+        }
       });
       console.log(`[Email Sent] MessageId: ${info.messageId} to ${cleanTo}`);
       return { success: true, messageId: info.messageId };

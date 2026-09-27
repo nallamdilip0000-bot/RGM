@@ -53,7 +53,10 @@ function getCurrentDeadlineSlot(date = new Date(), explicitSlot = null) {
     const found = DEADLINE_CHECK_SLOTS.find(s => s.slot === sNum);
     if (found) return found;
   }
-  const hour = date.getHours();
+  // Convert to IST (UTC + 5:30)
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000) + istOffset);
+  const hour = istDate.getHours();
   if (hour < 10) return DEADLINE_CHECK_SLOTS[0];
   if (hour < 14) return DEADLINE_CHECK_SLOTS[1];
   if (hour < 18) return DEADLINE_CHECK_SLOTS[2];
@@ -61,7 +64,7 @@ function getCurrentDeadlineSlot(date = new Date(), explicitSlot = null) {
 }
 
 /**
- * Calculates calendar day difference between target date and base date.
+ * Calculates calendar day difference between target date and base date using IST calendar.
  * > 0: In future (e.g. +1 means tomorrow)
  * = 0: Today
  * < 0: Overdue (in past)
@@ -71,8 +74,12 @@ function getCalendarDayDiff(targetDate, baseDate = new Date()) {
   const target = new Date(targetDate);
   if (isNaN(target.getTime())) return null;
 
-  const targetYMD = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-  const baseYMD = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const targetIST = new Date(target.getTime() + (target.getTimezoneOffset() * 60000) + istOffset);
+  const baseIST = new Date(baseDate.getTime() + (baseDate.getTimezoneOffset() * 60000) + istOffset);
+
+  const targetYMD = new Date(targetIST.getFullYear(), targetIST.getMonth(), targetIST.getDate());
+  const baseYMD = new Date(baseIST.getFullYear(), baseIST.getMonth(), baseIST.getDate());
 
   const diffMs = targetYMD.getTime() - baseYMD.getTime();
   return Math.round(diffMs / (1000 * 60 * 60 * 24));

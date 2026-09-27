@@ -23,19 +23,19 @@
   "crons": [
     {
       "path": "/api/cron/check-deadlines?slot=1",
-      "schedule": "0 8 * * *"
+      "schedule": "30 2 * * *"
     },
     {
       "path": "/api/cron/check-deadlines?slot=2",
-      "schedule": "0 12 * * *"
+      "schedule": "30 6 * * *"
     },
     {
       "path": "/api/cron/check-deadlines?slot=3",
-      "schedule": "0 16 * * *"
+      "schedule": "30 10 * * *"
     },
     {
       "path": "/api/cron/check-deadlines?slot=4",
-      "schedule": "0 20 * * *"
+      "schedule": "30 14 * * *"
     }
   ]
 }

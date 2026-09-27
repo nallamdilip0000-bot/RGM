@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const multer = require('multer');
 const {
   Projects,
@@ -13,24 +14,18 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 const { notifyUser } = require('../services/notificationService');
 const { generateProfessionalEmailTemplate } = require('../services/emailService');
 
-// Ensure upload directory exists
+// Optional local uploads directory for local development
 const uploadDir = path.join(__dirname, '../../public/uploads/documents');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (e) {
+  // Ignore in read-only / serverless environment
 }
 
-// Multer Storage Configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${baseName}_${uniqueSuffix}${ext}`);
-  }
-});
+// Multer in-memory storage (guarantees cross-platform support: Vercel, AWS, Mobile, PC)
+const storage = multer.memoryStorage();
 
 // File Filter for Academic Project Files
 const fileFilter = (req, file, cb) => {
@@ -39,11 +34,11 @@ const fileFilter = (req, file, cb) => {
     '.zip', '.rar', '.7z', '.tar', '.gz',
     '.txt', '.png', '.jpg', '.jpeg', '.csv', '.xlsx', '.xls'
   ];
-  const ext = path.extname(file.originalname).toLowerCase();
+  const ext = path.extname(file.originalname || '').toLowerCase();
   if (allowedExts.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error(`File type ${ext} is not allowed. Supported formats: PDF, DOC/DOCX, PPT/PPTX, ZIP/RAR, TXT, Excel, Images.`));
+    cb(new Error(`File type ${ext || 'unknown'} is not allowed. Supported formats: PDF, DOC/DOCX, PPT/PPTX, ZIP/RAR, TXT, Excel, Images.`));
   }
 };
 
@@ -65,7 +60,7 @@ router.post('/upload', verifyToken, (req, res) => {
     }
 
     try {
-      if (!req.file) {
+      if (!req.file || !req.file.buffer) {
         return res.status(400).json({ success: false, message: 'Please select a file to upload.' });
       }
 
@@ -81,13 +76,11 @@ router.post('/upload', verifyToken, (req, res) => {
       } = req.body;
 
       if (!projectId) {
-        try { fs.unlinkSync(req.file.path); } catch (e) {}
         return res.status(400).json({ success: false, message: 'Project ID is required.' });
       }
 
       const project = await Projects.findById(projectId);
       if (!project) {
-        try { fs.unlinkSync(req.file.path); } catch (e) {}
         return res.status(404).json({ success: false, message: 'Project not found.' });
       }
 
@@ -99,7 +92,6 @@ router.post('/upload', verifyToken, (req, res) => {
       const isAdmin = req.user.role === 'admin';
 
       if (!isLeader && !isMember && !isAssignedFaculty && !isAdmin) {
-        try { fs.unlinkSync(req.file.path); } catch (e) {}
         return res.status(403).json({ success: false, message: 'Unauthorized. You are not a member of this project.' });
       }
 
@@ -115,15 +107,23 @@ router.post('/upload', verifyToken, (req, res) => {
 
       const docCategory = category || 'Project Report';
       const docTitle = (title && title.trim()) ? title.trim() : req.file.originalname;
-      const fileUrl = `/uploads/documents/${req.file.filename}`;
-      const relativePath = path.relative(path.join(__dirname, '../../public'), req.file.path).replace(/\\/g, '/');
+
+      const ext = path.extname(req.file.originalname || '');
+      const baseName = path.basename(req.file.originalname || 'document', ext).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const generatedFileName = `${baseName}_${uniqueSuffix}${ext}`;
+      const docId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+      const fileUrl = `/api/documents/raw/${docId}`;
 
       // Resolve Faculty ID from project
       const rawFacId = project.facultyId?.id || project.facultyId?._id || project.facultyId;
       let faculty = await Faculty.findById(rawFacId);
       if (!faculty) faculty = await Faculty.findByFacultyId(rawFacId);
 
+      // Save document metadata
       const docRecord = await ProjectDocuments.create({
+        id: docId,
+        _id: docId,
         projectId: project.id,
         projectName: project.projectName,
         projectDomain: project.domain || '',
@@ -138,11 +138,10 @@ router.post('/upload', verifyToken, (req, res) => {
           registerNumber: effectiveMemberRegNo
         } : null,
         originalName: req.file.originalname,
-        fileName: req.file.filename,
-        fileUrl: fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`,
-        filePath: relativePath,
-        fileSize: req.file.size,
-        mimetype: req.file.mimetype,
+        fileName: generatedFileName,
+        fileUrl: fileUrl,
+        fileSize: req.file.size || req.file.buffer.length,
+        mimetype: req.file.mimetype || 'application/octet-stream',
         uploadedBy: {
           id: req.user.id,
           name: req.user.name || 'Student',
@@ -152,6 +151,22 @@ router.post('/upload', verifyToken, (req, res) => {
         facultyId: faculty ? (faculty.id || faculty._id) : rawFacId,
         createdAt: new Date().toISOString()
       });
+
+      // Persist binary file data in Firestore / cache
+      await ProjectDocuments.saveFile(docRecord.id, req.file.buffer, {
+        fileName: generatedFileName,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype
+      });
+
+      // Optionally write to local disk if running locally and folder is writable
+      try {
+        if (fs.existsSync(uploadDir)) {
+          fs.writeFileSync(path.join(uploadDir, generatedFileName), req.file.buffer);
+        }
+      } catch (e) {
+        // Ignore read-only errors
+      }
 
       // If uploaded by a student, notify the assigned Faculty Guide immediately
       if (req.user.role === 'student' && faculty) {
@@ -179,7 +194,7 @@ router.post('/upload', verifyToken, (req, res) => {
             { label: 'Submission Type', value: submissionScope, highlight: true },
             { label: 'Uploaded By', value: `${studentName}${studentRegNo}` },
             { label: 'File Name', value: req.file.originalname },
-            { label: 'File Size', value: `${(req.file.size / (1024 * 1024)).toFixed(2)} MB` },
+            { label: 'File Size', value: `${((req.file.size || req.file.buffer.length) / (1024 * 1024)).toFixed(2)} MB` },
             { label: 'Submission Time', value: new Date().toLocaleString('en-GB') }
           ],
           actionSteps: [
@@ -276,7 +291,49 @@ router.get('/faculty', verifyToken, requireRole('faculty', 'admin'), async (req,
 });
 
 // ==========================================
-// 4. DELETE DOCUMENT (Uploader, Project Leader, Assigned Faculty, or Admin)
+// 4. SERVE / PREVIEW / DOWNLOAD RAW DOCUMENT
+// ==========================================
+router.get('/raw/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    let doc = await ProjectDocuments.findById(id);
+    if (!doc) {
+      const allDocs = await ProjectDocuments.listAll();
+      doc = allDocs.find(d => d.fileName === id || d.id === id || d._id === id);
+    }
+
+    if (!doc) {
+      return res.status(404).send('Document record not found.');
+    }
+
+    const fileBuffer = await ProjectDocuments.getFile(doc.id || doc._id);
+    if (!fileBuffer) {
+      return res.status(404).send('File content not found or expired.');
+    }
+
+    const filename = doc.originalName || doc.fileName || 'document';
+    const isDownload = req.query.download === '1' || req.query.download === 'true';
+    const disposition = isDownload ? 'attachment' : 'inline';
+
+    res.setHeader('Content-Type', doc.mimetype || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader('Content-Length', fileBuffer.length);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.end(fileBuffer);
+  } catch (err) {
+    console.error('Serve Document Raw Error:', err);
+    res.status(500).send('Error retrieving file: ' + err.message);
+  }
+});
+
+// Download endpoint alias
+router.get('/download/:id', async (req, res) => {
+  req.query.download = '1';
+  return router.handle({ ...req, url: `/raw/${req.params.id}?download=1` }, res);
+});
+
+// ==========================================
+// 5. DELETE DOCUMENT (Uploader, Project Leader, Assigned Faculty, or Admin)
 // ==========================================
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
@@ -300,18 +357,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Unauthorized to delete this document.' });
     }
 
-    // Attempt to remove physical file from disk
-    if (doc.fileName) {
-      const filePath = path.join(uploadDir, doc.fileName);
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (e) {
-          console.warn('Could not remove file from disk:', e.message);
-        }
-      }
-    }
-
+    // Delete both metadata and stored file data
     await ProjectDocuments.delete(doc.id || doc._id);
 
     res.json({

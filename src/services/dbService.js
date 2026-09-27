@@ -1,3 +1,7 @@
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+
 const {
   db,
   collection,
@@ -12,6 +16,19 @@ const {
   where
 } = require('../config/firebase');
 
+// In-memory binary file buffer cache (fast retrieval for serverless & local)
+const fileBufferCache = new Map();
+
+// Local cache directory in OS temp directory (writable across all OS & serverless)
+const tmpUploadDir = path.join(os.tmpdir(), 'project_tracker_uploads');
+try {
+  if (!fs.existsSync(tmpUploadDir)) {
+    fs.mkdirSync(tmpUploadDir, { recursive: true });
+  }
+} catch (e) {
+  // Ignore if unable
+}
+
 // In-memory cache & fallback layer
 const memoryCache = {
   users: new Map(),
@@ -24,6 +41,7 @@ const memoryCache = {
   notifications: new Map(),
   faculty_allocations: new Map(),
   project_documents: new Map(),
+  project_document_data: new Map(),
   mentorship_attendance: new Map()
 };
 
@@ -892,9 +910,206 @@ const ProjectDocuments = {
       createdAt: data.createdAt || new Date().toISOString()
     });
   },
+
+  /**
+   * Save binary file payload in Firestore (chunked if large) + RAM cache + OS tmp cache
+   */
+  async saveFile(docId, buffer, metadata = {}) {
+    try {
+      const cleanId = String(docId);
+      if (!buffer || !Buffer.isBuffer(buffer)) return false;
+
+      // 1. RAM buffer cache for instantaneous retrieval
+      fileBufferCache.set(cleanId, buffer);
+
+      // 2. OS tmp disk cache (works locally and within warm serverless instance)
+      try {
+        const tmpPath = path.join(tmpUploadDir, `${cleanId}_${metadata.fileName || 'file'}`);
+        fs.writeFileSync(tmpPath, buffer);
+      } catch (e) {
+        // Disk write fallback ignore
+      }
+
+      // 3. Persistent Firestore storage (supports files up to 20MB via base64 chunking)
+      if (useFirestore) {
+        const base64Data = buffer.toString('base64');
+        const CHUNK_SIZE = 600 * 1024; // 600KB base64 chunk (~450KB raw data)
+        const totalLen = base64Data.length;
+
+        if (totalLen <= CHUNK_SIZE) {
+          // Single document storage
+          const fileDocRef = doc(db, 'project_document_data', cleanId);
+          await setDoc(fileDocRef, {
+            docId: cleanId,
+            data: base64Data,
+            isChunked: false,
+            totalChunks: 1,
+            size: buffer.length,
+            mimetype: metadata.mimetype || 'application/octet-stream',
+            originalName: metadata.originalName || '',
+            fileName: metadata.fileName || '',
+            createdAt: new Date().toISOString()
+          });
+        } else {
+          // Chunked multi-document storage
+          const totalChunks = Math.ceil(totalLen / CHUNK_SIZE);
+          for (let i = 0; i < totalChunks; i++) {
+            const chunkStr = base64Data.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+            const chunkRef = doc(db, 'project_document_data', `${cleanId}_chunk_${i}`);
+            await setDoc(chunkRef, {
+              docId: cleanId,
+              chunkIndex: i,
+              data: chunkStr,
+              totalChunks
+            });
+          }
+          // Header record
+          const headerRef = doc(db, 'project_document_data', cleanId);
+          await setDoc(headerRef, {
+            docId: cleanId,
+            isChunked: true,
+            totalChunks,
+            size: buffer.length,
+            mimetype: metadata.mimetype || 'application/octet-stream',
+            originalName: metadata.originalName || '',
+            fileName: metadata.fileName || '',
+            createdAt: new Date().toISOString()
+          });
+        }
+      }
+      return true;
+    } catch (err) {
+      console.error(`[ProjectDocuments.saveFile Error] ${docId}:`, err.message);
+      return false;
+    }
+  },
+
+  /**
+   * Retrieve binary file payload from RAM -> OS tmp disk -> Firestore chunks
+   */
+  async getFile(docId) {
+    try {
+      const cleanId = String(docId);
+
+      // 1. Check RAM buffer cache
+      if (fileBufferCache.has(cleanId)) {
+        return fileBufferCache.get(cleanId);
+      }
+
+      // 2. Check OS tmp disk cache
+      try {
+        if (fs.existsSync(tmpUploadDir)) {
+          const files = fs.readdirSync(tmpUploadDir);
+          const match = files.find(f => f.startsWith(`${cleanId}_`));
+          if (match) {
+            const buf = fs.readFileSync(path.join(tmpUploadDir, match));
+            fileBufferCache.set(cleanId, buf);
+            return buf;
+          }
+        }
+      } catch (e) {
+        // Disk read error ignore
+      }
+
+      // 3. Check public/uploads/documents (if running on local persistent machine)
+      try {
+        const publicUploads = path.join(__dirname, '../../public/uploads/documents');
+        if (fs.existsSync(publicUploads)) {
+          const docRecord = await this.findById(cleanId);
+          if (docRecord && docRecord.fileName) {
+            const localPath = path.join(publicUploads, docRecord.fileName);
+            if (fs.existsSync(localPath)) {
+              const buf = fs.readFileSync(localPath);
+              fileBufferCache.set(cleanId, buf);
+              return buf;
+            }
+          }
+        }
+      } catch (e) {
+        // Local path check ignore
+      }
+
+      // 4. Retrieve from Firestore document data
+      if (useFirestore) {
+        const headerRef = doc(db, 'project_document_data', cleanId);
+        const headerSnap = await getDoc(headerRef);
+        if (headerSnap.exists()) {
+          const headerData = headerSnap.data();
+          if (!headerData.isChunked && headerData.data) {
+            const buf = Buffer.from(headerData.data, 'base64');
+            fileBufferCache.set(cleanId, buf);
+            return buf;
+          } else if (headerData.isChunked && headerData.totalChunks) {
+            const totalChunks = headerData.totalChunks;
+            let fullBase64 = '';
+            for (let i = 0; i < totalChunks; i++) {
+              const chunkRef = doc(db, 'project_document_data', `${cleanId}_chunk_${i}`);
+              const chunkSnap = await getDoc(chunkRef);
+              if (chunkSnap.exists()) {
+                fullBase64 += (chunkSnap.data().data || '');
+              }
+            }
+            if (fullBase64) {
+              const buf = Buffer.from(fullBase64, 'base64');
+              fileBufferCache.set(cleanId, buf);
+              return buf;
+            }
+          }
+        }
+      }
+      return null;
+    } catch (err) {
+      console.error(`[ProjectDocuments.getFile Error] ${docId}:`, err.message);
+      return null;
+    }
+  },
+
+  /**
+   * Delete binary file data from memory, disk, and Firestore
+   */
+  async deleteFile(docId) {
+    try {
+      const cleanId = String(docId);
+      fileBufferCache.delete(cleanId);
+
+      // Delete from tmp
+      try {
+        if (fs.existsSync(tmpUploadDir)) {
+          const files = fs.readdirSync(tmpUploadDir);
+          files.filter(f => f.startsWith(`${cleanId}_`)).forEach(f => {
+            try { fs.unlinkSync(path.join(tmpUploadDir, f)); } catch (e) {}
+          });
+        }
+      } catch (e) {}
+
+      // Delete from Firestore
+      if (useFirestore) {
+        const headerRef = doc(db, 'project_document_data', cleanId);
+        const headerSnap = await getDoc(headerRef);
+        if (headerSnap.exists()) {
+          const data = headerSnap.data();
+          if (data.isChunked && data.totalChunks) {
+            for (let i = 0; i < data.totalChunks; i++) {
+              try {
+                await deleteDoc(doc(db, 'project_document_data', `${cleanId}_chunk_${i}`));
+              } catch (e) {}
+            }
+          }
+          await deleteDoc(headerRef);
+        }
+      }
+      return true;
+    } catch (err) {
+      console.warn(`[ProjectDocuments.deleteFile Warning] ${docId}:`, err.message);
+      return false;
+    }
+  },
+
   async delete(id) {
+    await this.deleteFile(id);
     return firestoreHelper.delete('project_documents', id);
   },
+
   async deleteByProject(projectId) {
     const list = await this.findByProject(projectId);
     for (const d of list) {

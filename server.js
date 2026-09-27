@@ -23,6 +23,29 @@ app.use(morgan('dev'));
 // Serve static frontend
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Dynamic fallback handler for project documents
+app.get('/uploads/documents/:filename', async (req, res, next) => {
+  try {
+    const { filename } = req.params;
+    const { ProjectDocuments } = require('./src/services/dbService');
+    const allDocs = await ProjectDocuments.listAll();
+    const doc = allDocs.find(d => d.fileName === filename);
+    if (doc) {
+      const fileBuffer = await ProjectDocuments.getFile(doc.id || doc._id);
+      if (fileBuffer) {
+        res.setHeader('Content-Type', doc.mimetype || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.originalName || doc.fileName)}"`);
+        res.setHeader('Content-Length', fileBuffer.length);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.end(fileBuffer);
+      }
+    }
+    next();
+  } catch (e) {
+    next();
+  }
+});
+
 // API Routes
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/faculty', require('./src/routes/faculty'));

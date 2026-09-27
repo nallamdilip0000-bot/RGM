@@ -684,9 +684,40 @@ window.openViewProjectModal = async function(projectId) {
         `;
       }).join('');
 
+      // Map and group tasks under respective milestones
+      const milestoneMap = new Map();
+      milestones.forEach(m => {
+        const mKey = String(m._id || m.id);
+        milestoneMap.set(mKey, { milestone: m, tasks: [] });
+      });
+
+      const standaloneTasks = [];
+
+      tasks.forEach(t => {
+        const tMsId = String(t.milestoneId?._id || t.milestoneId?.id || t.milestoneId || '');
+        let matched = false;
+        if (tMsId && milestoneMap.has(tMsId)) {
+          milestoneMap.get(tMsId).tasks.push(t);
+          matched = true;
+        } else {
+          // Fallback matching by milestone name or ID
+          for (const [key, entry] of milestoneMap.entries()) {
+            const m = entry.milestone;
+            if (m.name === t.milestoneName || m.name === t.milestoneId || key === tMsId) {
+              entry.tasks.push(t);
+              matched = true;
+              break;
+            }
+          }
+        }
+        if (!matched) {
+          standaloneTasks.push(t);
+        }
+      });
+
       const milestonesHtml = milestones.length === 0
-        ? '<p style="font-size: 13px; color: #94a3b8;">No milestones defined yet.</p>'
-        : milestones.map(m => {
+        ? '<div style="font-size: 13px; color: #94a3b8; text-align: center; padding: 20px; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px;">No milestones defined yet.</div>'
+        : Array.from(milestoneMap.values()).map(({ milestone: m, tasks: msTasks }) => {
           let statusBadge = '';
           if (m.deadlineStatus === 'Pending_Approval') {
             statusBadge = `<span style="font-size: 11px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; font-weight: 600;">⏳ Ext. Pending: ${formatDate(m.requestedDeadline)}</span>`;
@@ -696,56 +727,127 @@ window.openViewProjectModal = async function(projectId) {
             statusBadge = `<span style="font-size: 11px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 2px 6px; border-radius: 4px; font-weight: 600;">✓ Ext. Approved</span>`;
           }
 
+          const completedCount = msTasks.filter(t => t.status === 'Completed').length;
+          const progressPercent = msTasks.length > 0 ? Math.round((completedCount / msTasks.length) * 100) : (m.progress || 0);
+
+          const msTasksHtml = msTasks.length === 0
+            ? `<div style="font-size: 12px; color: #94a3b8; font-style: italic; padding: 10px 14px; background: #f8fafc; border-radius: 6px; border: 1px dashed #e2e8f0; text-align: center;">No tasks created under this milestone yet.</div>`
+            : msTasks.map(t => {
+                let assigneeLabel = t.assignedTo?.name || 'Unassigned';
+                if (t.isGroupTask || t.assignedTo === 'ALL') {
+                  assigneeLabel = '👥 Entire Team (Group Task)';
+                } else if (Array.isArray(t.assignedMembers) && t.assignedMembers.length > 1) {
+                  assigneeLabel = `👥 ${t.assignedMembers.map(x => x.name).join(', ')}`;
+                } else if (t.assignedTo?.name) {
+                  assigneeLabel = `👤 ${t.assignedTo.name}`;
+                }
+
+                let taskBadge = '';
+                if (t.deadlineStatus === 'Pending_Approval') {
+                  taskBadge = `<span style="font-size: 10px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 1px 5px; border-radius: 3px; font-weight: 600;">⏳ Req: ${formatDate(t.requestedDeadline)}</span>`;
+                } else if (t.deadlineStatus === 'Rejected') {
+                  taskBadge = `<span style="font-size: 10px; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 1px 5px; border-radius: 3px; font-weight: 600;">⚠️ Enforced: ${formatDate(t.deadline)}</span>`;
+                } else if (t.deadlineStatus === 'Approved' && t.allocatedDeadline && t.allocatedDeadline !== t.previousDeadline) {
+                  taskBadge = `<span style="font-size: 10px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 1px 5px; border-radius: 3px; font-weight: 600;">✓ Approved</span>`;
+                }
+
+                return `
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px; font-size: 12.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="flex: 1; padding-right: 12px;">
+                      <div style="font-weight: 600; color: #1e293b; margin-bottom: 3px;">
+                        ${escapeHtml(t.name)} &bull; <span style="color: #64748b; font-weight: 500;">${assigneeLabel}</span>
+                      </div>
+                      <div style="font-size: 11px; color: #64748b; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span>Priority: <strong style="color: ${t.priority === 'Critical' ? '#dc2626' : (t.priority === 'High' ? '#ea580c' : '#475569')};">${t.priority || 'Medium'}</strong></span>
+                        <span>&bull;</span>
+                        <span>Active Due: <strong>${formatDate(t.deadline)}</strong></span>
+                        ${taskBadge}
+                      </div>
+                    </div>
+                    <span class="badge badge-${t.status === 'Completed' ? 'completed' : 'inprogress'}" style="font-size: 11.5px; padding: 4px 10px; font-weight: 600;">
+                      ${t.status || 'To Do'}
+                    </span>
+                  </div>
+                `;
+              }).join('');
+
           return `
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
-            <div>
-              <strong>${escapeHtml(m.name)}</strong>
-              <div style="font-size: 11px; color: #64748b; margin-top: 2px; display: flex; align-items: center; gap: 8px;">
-                <span>Active Deadline: <strong>${formatDate(m.deadline)}</strong></span>
-                ${statusBadge}
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span style="font-weight: 600;">${m.progress || 0}%</span>
-              <span class="badge badge-${m.status === 'Completed' ? 'completed' : 'inprogress'}">${m.status}</span>
-            </div>
-          </div>
-        `;
-        }).join('');
-
-      const tasksHtml = tasks.length === 0
-        ? '<p style="font-size: 13px; color: #94a3b8;">No tasks created.</p>'
-        : tasks.map(t => {
-          let assigneeLabel = t.assignedTo?.name || 'Unassigned';
-          if (t.isGroupTask || t.assignedTo === 'ALL') {
-            assigneeLabel = '👥 Entire Team (Group Task)';
-          } else if (Array.isArray(t.assignedMembers) && t.assignedMembers.length > 1) {
-            assigneeLabel = `👥 ${t.assignedMembers.map(x => x.name).join(', ')}`;
-          }
-
-          let taskBadge = '';
-          if (t.deadlineStatus === 'Pending_Approval') {
-            taskBadge = `<span style="font-size: 10px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 1px 5px; border-radius: 3px; font-weight: 600;">⏳ Req: ${formatDate(t.requestedDeadline)}</span>`;
-          } else if (t.deadlineStatus === 'Rejected') {
-            taskBadge = `<span style="font-size: 10px; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 1px 5px; border-radius: 3px; font-weight: 600;">⚠️ Enforced: ${formatDate(t.deadline)}</span>`;
-          } else if (t.deadlineStatus === 'Approved' && t.allocatedDeadline && t.allocatedDeadline !== t.previousDeadline) {
-            taskBadge = `<span style="font-size: 10px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 1px 5px; border-radius: 3px; font-weight: 600;">✓ Approved</span>`;
-          }
-
-          return `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
-              <div>
-                <strong>${escapeHtml(t.name)}</strong> &bull; <span style="color: #64748b;">${assigneeLabel}</span>
-                <div style="font-size: 11px; color: #64748b; margin-top: 2px; display: flex; align-items: center; gap: 8px;">
-                  <span>Priority: ${t.priority}</span> &bull; 
-                  <span>Active Due: <strong>${formatDate(t.deadline)}</strong></span>
-                  ${taskBadge}
+            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+              <!-- Milestone Header -->
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 16px;">🎯</span>
+                    <strong style="font-size: 15px; color: #0f172a;">${escapeHtml(m.name)}</strong>
+                  </div>
+                  <div style="font-size: 11.5px; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span>Active Deadline: <strong>${formatDate(m.deadline)}</strong></span>
+                    ${statusBadge}
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                  <span style="font-size: 13.5px; font-weight: 700; color: #1e293b;">${progressPercent}%</span>
+                  <span class="badge badge-${m.status === 'Completed' ? 'completed' : 'inprogress'}" style="font-weight: 600;">
+                    ${m.status || 'Not Started'}
+                  </span>
                 </div>
               </div>
-              <span class="badge badge-${t.status === 'Completed' ? 'completed' : 'inprogress'}">${t.status}</span>
+
+              <!-- Progress bar -->
+              <div class="progress-container" style="height: 5px; margin-bottom: 14px; background: #e2e8f0;">
+                <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
+              </div>
+
+              <!-- Nested Tasks for this Milestone -->
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+                <div style="font-size: 11.5px; font-weight: 700; color: #1e40af; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; letter-spacing: 0.5px;">
+                  <span style="display: inline-flex; align-items: center; gap: 4px;">
+                    📋 <span>Tasks Belonging to this Milestone (${msTasks.length})</span>
+                  </span>
+                  <span style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: none;">
+                    ${completedCount} of ${msTasks.length} Completed
+                  </span>
+                </div>
+                <div>
+                  ${msTasksHtml}
+                </div>
+              </div>
             </div>
           `;
         }).join('');
+
+      // Standalone tasks (not associated with any specific milestone) if any exist
+      const standaloneHtml = standaloneTasks.length === 0 ? '' : `
+        <div style="background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px;">
+          <div style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            📌 <span>General / Unassigned Milestone Tasks (${standaloneTasks.length})</span>
+          </div>
+          <div>
+            ${standaloneTasks.map(t => {
+              let assigneeLabel = t.assignedTo?.name || 'Unassigned';
+              if (t.isGroupTask || t.assignedTo === 'ALL') {
+                assigneeLabel = '👥 Entire Team (Group Task)';
+              } else if (Array.isArray(t.assignedMembers) && t.assignedMembers.length > 1) {
+                assigneeLabel = `👥 ${t.assignedMembers.map(x => x.name).join(', ')}`;
+              } else if (t.assignedTo?.name) {
+                assigneeLabel = `👤 ${t.assignedTo.name}`;
+              }
+              return `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 6px; font-size: 12.5px;">
+                  <div>
+                    <strong>${escapeHtml(t.name)}</strong> &bull; <span style="color: #64748b;">${assigneeLabel}</span>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                      <span>Priority: ${t.priority || 'Medium'}</span> &bull; 
+                      <span>Active Due: <strong>${formatDate(t.deadline)}</strong></span>
+                    </div>
+                  </div>
+                  <span class="badge badge-${t.status === 'Completed' ? 'completed' : 'inprogress'}">${t.status}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
 
       body.innerHTML = `
         <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -773,16 +875,16 @@ window.openViewProjectModal = async function(projectId) {
             </div>
           </div>
 
-          <!-- 3. Milestones -->
+          <!-- 3. Milestones & Their Associated Tasks -->
           <div>
-            <h4 style="font-size: 14px; margin-bottom: 10px; color: #1e3a8a;">MILESTONES</h4>
-            <div>${milestonesHtml}</div>
-          </div>
-
-          <!-- 4. Granular Tasks -->
-          <div>
-            <h4 style="font-size: 14px; margin-bottom: 10px; color: #1e3a8a;">TASKS</h4>
-            <div style="max-height: 200px; overflow-y: auto;">${tasksHtml}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <h4 style="font-size: 14px; margin: 0; color: #1e3a8a;">MILESTONES &amp; TASKS</h4>
+              <span style="font-size: 12px; color: #64748b;">${milestones.length} Milestones &bull; ${tasks.length} Total Tasks</span>
+            </div>
+            <div>
+              ${milestonesHtml}
+              ${standaloneHtml}
+            </div>
           </div>
 
           <!-- 5. Evaluation & Marks Sheet (if Evaluated) -->
@@ -1472,6 +1574,10 @@ function renderFacultyDocuments() {
         const fileSizeMB = doc.fileSize ? (doc.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : (doc.fileSize ? (doc.fileSize / 1024).toFixed(1) + ' KB' : '');
         const fileExt = (doc.fileName || '').split('.').pop()?.toUpperCase() || 'FILE';
 
+        const docId = doc._id || doc.id;
+        const previewUrl = doc.fileUrl || `/api/documents/raw/${docId}`;
+        const downloadUrl = previewUrl.includes('?') ? `${previewUrl}&download=1` : `${previewUrl}?download=1`;
+
         return `
           <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, box-shadow 0.2s;">
             <div>
@@ -1509,11 +1615,11 @@ function renderFacultyDocuments() {
             </div>
 
             <div style="display: flex; gap: 8px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 14px;">
-              <a href="${doc.fileUrl}" target="_blank" class="btn btn-primary btn-sm" style="flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+              <a href="${previewUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm" style="flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 Preview
               </a>
-              <a href="${doc.fileUrl}" download="${doc.originalName || doc.title}" class="btn btn-secondary btn-sm" style="flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+              <a href="${downloadUrl}" download="${encodeURIComponent(doc.originalName || doc.title)}" class="btn btn-secondary btn-sm" style="flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Download
               </a>

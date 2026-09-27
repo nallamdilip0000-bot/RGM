@@ -2563,6 +2563,9 @@ function renderProjectDocuments() {
         const isLeader = selectedProjectForDocs && String(selectedProjectForDocs.teamLeaderId?._id || selectedProjectForDocs.teamLeaderId?.id || selectedProjectForDocs.teamLeaderId) === String(currentStudent?.id);
         const fileExt = (doc.fileName || '').split('.').pop()?.toUpperCase() || 'FILE';
 
+        const previewUrl = doc.fileUrl || `/api/documents/raw/${docId}`;
+        const downloadUrl = previewUrl.includes('?') ? `${previewUrl}&download=1` : `${previewUrl}?download=1`;
+
         return `
           <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, box-shadow 0.2s;">
             <div>
@@ -2596,11 +2599,11 @@ function renderProjectDocuments() {
             </div>
 
             <div style="display: flex; gap: 8px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 12px;">
-              <a href="${doc.fileUrl}" target="_blank" class="btn btn-primary btn-sm" style="flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+              <a href="${previewUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm" style="flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 Preview
               </a>
-              <a href="${doc.fileUrl}" download="${doc.originalName || doc.title}" class="btn btn-secondary btn-sm" style="flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+              <a href="${downloadUrl}" download="${encodeURIComponent(doc.originalName || doc.title)}" class="btn btn-secondary btn-sm" style="flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Download
               </a>

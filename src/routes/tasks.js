@@ -507,6 +507,31 @@ router.delete('/:id', verifyToken, async (req, res) => {
 
         if (faculty) {
           const studentName = req.user.name || req.userDoc?.name || 'Student / Team Leader';
+          const notifTitle = `🗑️ Task Deleted: "${task.name}"`;
+          const notifMsg = `Notice: ${studentName} deleted task "${task.name}" from project "${project.projectName}".`;
+
+          const emailHtml = generateProfessionalEmailTemplate({
+            headerTitle: 'Academic Faculty Mentorship Portal',
+            headerSubtitle: 'Task Deletion Notice',
+            recipientName: `Prof. ${faculty.name}`,
+            badgeText: 'Task Removed',
+            badgeColor: '#dc2626',
+            badgeBg: '#fef2f2',
+            title: notifTitle,
+            summaryText: notifMsg,
+            details: [
+              { label: 'Project Name', value: project.projectName, highlight: true },
+              { label: 'Task Name', value: task.name },
+              { label: 'Deleted By', value: studentName },
+              { label: 'Deletion Date', value: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
+            ],
+            actionSteps: [
+              'Task and deliverables have been removed from the project workspace.',
+              'Check updated project progress in the Faculty Portal.'
+            ],
+            alertType: 'warning'
+          });
+
           await notifyUser({
             userId: faculty.id || faculty._id,
             userModel: 'Faculty',
@@ -514,12 +539,14 @@ router.delete('/:id', verifyToken, async (req, res) => {
             userEmail: faculty.email,
             userName: faculty.name,
             userPhone: faculty.phone,
-            preferences: faculty.notificationPreferences,
+            preferences: faculty.notificationPreferences || { inApp: true, email: true },
             projectId: project.id,
             type: `TASK_DELETED_${Date.now()}`,
-            title: `🗑️ Task Deleted: "${task.name}"`,
-            message: `Notice: ${studentName} deleted task "${task.name}" from project "${project.projectName}".`,
-            isDirectAction: true
+            title: notifTitle,
+            message: notifMsg,
+            emailHtml,
+            isDirectAction: true,
+            force: true
           });
         }
       }

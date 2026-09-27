@@ -827,6 +827,35 @@ router.put('/:id', verifyToken, async (req, res) => {
           changeSummary = `start date from ${oldStartStr} to ${newStartStr}`;
         }
 
+        const notifTitle = `📅 Project Deadline Changed: "${project.projectName}"`;
+        const notifMsg = `Notice: ${studentName} updated the ${changeSummary} for project "${project.projectName}".`;
+        const appUrl = process.env.APP_URL || 'http://localhost:5000';
+        const facultyProjectUrl = `${appUrl}/faculty/index.html?projectId=${project.id}`;
+
+        const emailHtml = generateProfessionalEmailTemplate({
+          headerTitle: 'Academic Faculty Mentorship Portal',
+          headerSubtitle: 'Project Schedule / Timeline Change Notice',
+          recipientName: `Prof. ${faculty.name}`,
+          badgeText: 'Project Schedule Updated',
+          badgeColor: '#2563eb',
+          badgeBg: '#eff6ff',
+          title: notifTitle,
+          summaryText: notifMsg,
+          details: [
+            { label: 'Project Name', value: project.projectName, highlight: true },
+            { label: 'Updated By', value: studentName },
+            { label: 'Schedule Modification', value: changeSummary, highlight: true },
+            { label: 'Updated At', value: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
+          ],
+          actionSteps: [
+            'Log into the Faculty Portal to inspect the revised project schedule and milestone timeline.',
+            'Coordinate with the student team leader during your review sessions.'
+          ],
+          buttonText: 'View Project in Faculty Portal',
+          buttonUrl: facultyProjectUrl,
+          alertType: 'info'
+        });
+
         await notifyUser({
           userId: faculty.id || faculty._id || (typeof faculty === 'string' ? faculty : null),
           userModel: 'Faculty',
@@ -834,11 +863,14 @@ router.put('/:id', verifyToken, async (req, res) => {
           userEmail: faculty.email,
           userName: faculty.name,
           userPhone: faculty.phone,
-          preferences: faculty.notificationPreferences,
+          preferences: faculty.notificationPreferences || { inApp: true, email: true },
           projectId: project.id,
           type: `PROJECT_DEADLINE_CHANGED_${Date.now()}`,
-          title: `📅 Project Deadline Changed: "${project.projectName}"`,
-          message: `Notice: ${studentName} updated the ${changeSummary} for project "${project.projectName}".`
+          title: notifTitle,
+          message: notifMsg,
+          emailHtml,
+          isDirectAction: true,
+          force: true
         });
       }
     }
@@ -1072,6 +1104,30 @@ router.delete('/:id', verifyToken, async (req, res) => {
 
       if (faculty) {
         const studentName = req.user.name || req.userDoc?.name || 'Student / Team Leader';
+        const notifTitle = `🗑️ Project Deleted: "${project.projectName}"`;
+        const notifMsg = `Notice: ${studentName} deleted the project "${project.projectName}". All associated milestones, tasks, and evaluations have been removed.`;
+
+        const emailHtml = generateProfessionalEmailTemplate({
+          headerTitle: 'Academic Faculty Mentorship Portal',
+          headerSubtitle: 'Project Deletion Notice',
+          recipientName: `Prof. ${faculty.name}`,
+          badgeText: 'Project Removed',
+          badgeColor: '#dc2626',
+          badgeBg: '#fef2f2',
+          title: notifTitle,
+          summaryText: notifMsg,
+          details: [
+            { label: 'Project Name', value: project.projectName, highlight: true },
+            { label: 'Deleted By', value: studentName },
+            { label: 'Deletion Date', value: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
+          ],
+          actionSteps: [
+            'All records, milestones, tasks, and deliverables for this project have been removed.',
+            'Contact the student team leader if you believe this was done in error.'
+          ],
+          alertType: 'danger'
+        });
+
         await notifyUser({
           userId: faculty.id || faculty._id || (typeof faculty === 'string' ? faculty : null),
           userModel: 'Faculty',
@@ -1079,11 +1135,14 @@ router.delete('/:id', verifyToken, async (req, res) => {
           userEmail: faculty.email,
           userName: faculty.name,
           userPhone: faculty.phone,
-          preferences: faculty.notificationPreferences,
+          preferences: faculty.notificationPreferences || { inApp: true, email: true },
           projectId: project.id,
           type: `PROJECT_DELETED_${Date.now()}`,
-          title: `🗑️ Project Deleted: "${project.projectName}"`,
-          message: `Notice: ${studentName} deleted the project "${project.projectName}". All associated milestones, tasks, and evaluations have been removed.`
+          title: notifTitle,
+          message: notifMsg,
+          emailHtml,
+          isDirectAction: true,
+          force: true
         });
       }
     }

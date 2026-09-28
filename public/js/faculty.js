@@ -1623,6 +1623,9 @@ function renderFacultyDocuments() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Download
               </a>
+              <button type="button" class="btn btn-sm btn-danger" onclick="handleFacultyDeleteDocument('${doc.id || doc._id}', '${escapeHtml(doc.title || doc.originalName)}')" title="Delete Document Directly" style="padding: 6px 10px; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
             </div>
           </div>
         `;
@@ -1630,6 +1633,22 @@ function renderFacultyDocuments() {
     </div>
   `;
 }
+
+window.handleFacultyDeleteDocument = async function(docId, docTitle) {
+  if (!confirm(`Are you sure you want to delete "${docTitle}"?\n\nThis will permanently delete the document from both the Faculty Portal and the Student Portal.`)) {
+    return;
+  }
+
+  try {
+    const res = await apiRequest(`/documents/${docId}`, 'DELETE');
+    if (res.success) {
+      showToast('Document deleted successfully.', 'success');
+      await loadFacultyDocuments();
+    }
+  } catch (err) {
+    showToast(err.message || 'Failed to delete document.', 'error');
+  }
+};
 
 window.openFacultyProjectDocuments = function(projectId) {
   switchTab('tabDocuments');

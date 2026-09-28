@@ -7,7 +7,9 @@ const {
   Milestones,
   Tasks,
   Evaluations,
-  FacultyAllocations
+  FacultyAllocations,
+  ProjectDocuments,
+  MentorshipAttendance
 } = require('../services/dbService');
 const { verifyToken, requireRole } = require('../middleware/auth');
 const { notifyUser } = require('../services/notificationService');
@@ -1188,11 +1190,13 @@ router.delete('/:id', verifyToken, async (req, res) => {
     await Milestones.deleteByProject(project.id);
     await Tasks.deleteByProject(project.id);
     await Evaluations.deleteByProject(project.id);
+    await ProjectDocuments.deleteByProject(project.id);
+    await MentorshipAttendance.deleteByProject(project.id);
     await Projects.delete(project.id);
 
     res.json({
       success: true,
-      message: 'Project and all associated milestones, tasks, and evaluations deleted successfully.'
+      message: 'Project and all associated milestones, tasks, documents, and evaluations deleted successfully.'
     });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to delete project.', error: err.message });

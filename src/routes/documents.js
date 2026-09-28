@@ -289,17 +289,23 @@ router.get('/faculty', verifyToken, requireRole('faculty', 'admin'), async (req,
     const facultyId = String(req.user.id);
     let docs = [];
 
+    const allProjects = await Projects.listAll();
+    const existingProjectMap = new Map();
+    allProjects.forEach(p => {
+      existingProjectMap.set(String(p.id), p);
+      if (p._id) existingProjectMap.set(String(p._id), p);
+    });
+
     if (req.user.role === 'admin') {
-      docs = await ProjectDocuments.listAll();
+      docs = await ProjectDocuments.listAll(d => existingProjectMap.has(String(d.projectId)));
     } else {
-      const assignedProjects = await Projects.listAll(p =>
+      const assignedProjects = allProjects.filter(p =>
         String(p.facultyId?.id || p.facultyId?._id || p.facultyId) === facultyId
       );
-      const projectIds = new Set(assignedProjects.map(p => String(p.id)));
+      const assignedProjectIds = new Set(assignedProjects.map(p => String(p.id)));
 
-      docs = await ProjectDocuments.listAll(d =>
-        String(d.facultyId) === facultyId || projectIds.has(String(d.projectId))
-      );
+      // ONLY return documents for projects that currently exist and are assigned to this faculty
+      docs = await ProjectDocuments.listAll(d => assignedProjectIds.has(String(d.projectId)));
     }
 
     res.json({

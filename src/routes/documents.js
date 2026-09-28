@@ -251,6 +251,7 @@ router.get('/project/:projectId', verifyToken, async (req, res) => {
     if (req.user.role === 'student') {
       const studentId = String(req.user.id);
       const studentReg = (req.user.registerNumber || '').toUpperCase();
+      const studentEmail = (req.user.email || '').toLowerCase();
       const leaderId = String(project.teamLeaderId?.id || project.teamLeaderId?._id || project.teamLeaderId);
       const memberIds = Array.isArray(project.teamMemberIds)
         ? project.teamMemberIds.map(m => String(m?.id || m?._id || m))
@@ -258,7 +259,12 @@ router.get('/project/:projectId', verifyToken, async (req, res) => {
       const memberRegs = Array.isArray(project.teamMemberIds)
         ? project.teamMemberIds.map(m => String(m?.registerNumber || '').toUpperCase())
         : [];
-      const isEnrolled = leaderId === studentId || memberIds.includes(studentId) || (studentReg && memberRegs.includes(studentReg));
+      const memberEmails = Array.isArray(project.teamMemberIds)
+        ? project.teamMemberIds.map(m => String(m?.email || '').toLowerCase())
+        : [];
+      const isEnrolled = leaderId === studentId || memberIds.includes(studentId) ||
+        (studentReg && memberRegs.includes(studentReg)) ||
+        (studentEmail && memberEmails.includes(studentEmail));
       if (!isEnrolled) {
         return res.status(403).json({ success: false, message: 'Access denied. You do not belong to this project.' });
       }

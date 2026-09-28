@@ -153,19 +153,11 @@ router.post('/', verifyToken, requireRole('student'), async (req, res) => {
       }
 
       if (existingUser) {
-        // Enforce same academic year
-        if (existingUser.year && studentYear && !isYearMatch(existingUser.year, studentYear)) {
-          return res.status(400).json({
-            success: false,
-            message: `Cannot add student ${existingUser.name} (${existingUser.registerNumber || existingUser.email}). They belong to ${existingUser.year}, but your project is for ${studentYear}.`
-          });
-        }
-
         memberId = existingUser.id || existingUser._id;
-        name = existingUser.name || name;
-        registerNumber = existingUser.registerNumber ? existingUser.registerNumber.toUpperCase() : registerNumber;
-        email = existingUser.email ? existingUser.email.toLowerCase() : email;
-        phone = existingUser.phone || phone;
+        name = name || existingUser.name;
+        registerNumber = registerNumber || (existingUser.registerNumber ? existingUser.registerNumber.toUpperCase() : '');
+        email = email || (existingUser.email ? existingUser.email.toLowerCase() : '');
+        phone = phone || (existingUser.phone || '');
       }
 
       if (!name && !registerNumber) continue;
@@ -445,7 +437,7 @@ router.get('/', verifyToken, async (req, res) => {
     if (req.user.role === 'student') {
       const studentId = String(req.user.id);
       const studentReg = (req.user.registerNumber || '').toUpperCase();
-      const studentYear = req.user.year;
+      const studentEmail = (req.user.email || '').toLowerCase();
       projects = await Projects.listAll(p => {
         const leaderId = String(p.teamLeaderId?.id || p.teamLeaderId?._id || p.teamLeaderId);
         const memberIds = Array.isArray(p.teamMemberIds)
@@ -454,11 +446,12 @@ router.get('/', verifyToken, async (req, res) => {
         const memberRegs = Array.isArray(p.teamMemberIds)
           ? p.teamMemberIds.map(m => String(m?.registerNumber || '').toUpperCase())
           : [];
-        const isEnrolled = leaderId === studentId || memberIds.includes(studentId) || (studentReg && memberRegs.includes(studentReg));
-        if (studentYear && p.year) {
-          return isEnrolled && isYearMatch(p.year, studentYear);
-        }
-        return isEnrolled;
+        const memberEmails = Array.isArray(p.teamMemberIds)
+          ? p.teamMemberIds.map(m => String(m?.email || '').toLowerCase())
+          : [];
+        return leaderId === studentId || memberIds.includes(studentId) ||
+          (studentReg && memberRegs.includes(studentReg)) ||
+          (studentEmail && memberEmails.includes(studentEmail));
       });
     } else if (req.user.role === 'faculty') {
       const facultyId = String(req.user.id);
@@ -500,7 +493,7 @@ router.get('/:id', verifyToken, async (req, res) => {
     if (req.user.role === 'student') {
       const studentId = String(req.user.id);
       const studentReg = (req.user.registerNumber || '').toUpperCase();
-      const studentYear = req.user.year;
+      const studentEmail = (req.user.email || '').toLowerCase();
       const leaderId = String(project.teamLeaderId?.id || project.teamLeaderId?._id || project.teamLeaderId);
       const memberIds = Array.isArray(project.teamMemberIds)
         ? project.teamMemberIds.map(m => String(m?.id || m?._id || m))
@@ -508,9 +501,13 @@ router.get('/:id', verifyToken, async (req, res) => {
       const memberRegs = Array.isArray(project.teamMemberIds)
         ? project.teamMemberIds.map(m => String(m?.registerNumber || '').toUpperCase())
         : [];
-      const isEnrolled = leaderId === studentId || memberIds.includes(studentId) || (studentReg && memberRegs.includes(studentReg));
-      const isYearOk = !studentYear || !project.year || isYearMatch(project.year, studentYear);
-      if (!isEnrolled || !isYearOk) {
+      const memberEmails = Array.isArray(project.teamMemberIds)
+        ? project.teamMemberIds.map(m => String(m?.email || '').toLowerCase())
+        : [];
+      const isEnrolled = leaderId === studentId || memberIds.includes(studentId) ||
+        (studentReg && memberRegs.includes(studentReg)) ||
+        (studentEmail && memberEmails.includes(studentEmail));
+      if (!isEnrolled) {
         return res.status(403).json({ success: false, message: 'Unauthorized. You do not have permission to view another student\'s project.' });
       }
     }
@@ -628,19 +625,11 @@ router.put('/:id', verifyToken, async (req, res) => {
         }
 
         if (existingUser) {
-          const targetYear = updates.year || project.year;
-          if (existingUser.year && targetYear && !isYearMatch(existingUser.year, targetYear)) {
-            return res.status(400).json({
-              success: false,
-              message: `Cannot add student ${existingUser.name} (${existingUser.registerNumber || existingUser.email}). They belong to ${existingUser.year}, while this project is for ${targetYear}.`
-            });
-          }
-
           memberId = existingUser.id || existingUser._id;
-          name = existingUser.name || name;
-          registerNumber = existingUser.registerNumber ? existingUser.registerNumber.toUpperCase() : registerNumber;
-          email = existingUser.email ? existingUser.email.toLowerCase() : email;
-          phone = existingUser.phone || phone;
+          name = name || existingUser.name;
+          registerNumber = registerNumber || (existingUser.registerNumber ? existingUser.registerNumber.toUpperCase() : '');
+          email = email || (existingUser.email ? existingUser.email.toLowerCase() : '');
+          phone = phone || (existingUser.phone || '');
         }
 
         if (!name && !registerNumber) continue;

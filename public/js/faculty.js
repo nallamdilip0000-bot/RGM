@@ -431,7 +431,21 @@ const FAC_YEAR_MAP = {
 function normalizeFacultyDept(dept) {
   if (!dept) return '';
   const key = String(dept).trim().toLowerCase();
-  return FAC_DEPT_MAP[key] || dept.trim();
+  if (FAC_DEPT_MAP[key]) return FAC_DEPT_MAP[key];
+
+  // Specific specialization checks FIRST before general CSE
+  if (key.includes('ai') && key.includes('ml')) return 'CSE (AI & ML)';
+  if (key.includes('data science') || key.includes(' ds') || key.endsWith('(ds)')) return 'CSE (Data Science)';
+  if (key.includes('cyber') || key.includes(' cs') || key.endsWith('(cs)')) return 'CSE (Cyber Security)';
+  if (key.includes('ai') || key.includes('artificial intelligence')) return 'CSE (AI)';
+  if (key.includes('cse') || key.includes('computer science')) return 'CSE';
+  if (key.includes('it') || key.includes('information tech')) return 'IT';
+  if (key.includes('ece') || key.includes('electronics')) return 'ECE';
+  if (key.includes('eee') || key.includes('electrical')) return 'EEE';
+  if (key.includes('mech')) return 'MECH';
+  if (key.includes('civil')) return 'CIVIL';
+
+  return dept.trim();
 }
 
 function normalizeFacultyYear(yr) {
@@ -483,15 +497,12 @@ function getMeetingDept(m) {
 }
 
 function matchDept(actualDept, filterDept) {
-  if (!filterDept) return true;
+  if (!filterDept || filterDept === 'ALL' || filterDept === '') return true;
   if (!actualDept) return false;
-  const nActual = normalizeFacultyDept(actualDept).toLowerCase();
-  const nFilter = normalizeFacultyDept(filterDept).toLowerCase();
-  if (nActual === nFilter) return true;
-
-  const a = String(actualDept).toLowerCase().replace(/[^a-z0-9]/g, '');
-  const f = String(filterDept).toLowerCase().replace(/[^a-z0-9]/g, '');
-  return a.includes(f) || f.includes(a);
+  const nActual = normalizeFacultyDept(actualDept);
+  const nFilter = normalizeFacultyDept(filterDept);
+  if (!nActual || !nFilter) return false;
+  return nActual.toLowerCase() === nFilter.toLowerCase();
 }
 
 // Render Assigned Project Cards (Overview Tab)

@@ -219,65 +219,6 @@ router.put('/:id', verifyToken, async (req, res) => {
       }
     }
 
-    // If milestone marked complete, notify faculty
-    if (status === 'Completed' && project && project.facultyId) {
-      let faculty = project.facultyId;
-      if (faculty && (typeof faculty === 'string' || !faculty.email)) {
-        faculty = (await Faculty.findById(faculty.id || faculty._id || faculty)) || faculty;
-      }
-
-      if (faculty) {
-        const appUrl = process.env.APP_URL || 'http://localhost:5000';
-        const facultyReviewUrl = `${appUrl}/faculty/index.html?projectId=${project.id}`;
-        const studentName = req.user.name || req.userDoc?.name || 'Student Team';
-        const notifTitle = `🎉 Milestone Completed: "${milestone.name}"`;
-        const notifMsg = `Great news! Team led by ${studentName} has successfully completed milestone "${milestone.name}" for project "${project.projectName}".`;
-
-        const emailHtml = generateProfessionalEmailTemplate({
-          headerTitle: 'Academic Faculty Mentorship Portal',
-          headerSubtitle: 'Project Milestone Completion Notice',
-          recipientName: `Prof. ${faculty.name}`,
-          badgeText: 'Milestone Completed',
-          badgeColor: '#059669',
-          badgeBg: '#ecfdf5',
-          title: notifTitle,
-          summaryText: notifMsg,
-          details: [
-            { label: 'Project Name', value: project.projectName, highlight: true },
-            { label: 'Milestone Completed', value: milestone.name, highlight: true },
-            { label: 'Submitted By', value: studentName },
-            { label: 'Completion Date', value: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
-          ],
-          actionSteps: [
-            'Log into the Faculty Portal to inspect completed milestone tasks and deliverables.',
-            'Review submitted documents or project code repositories.',
-            'Evaluate student progress and provide guidance for the next milestone phase.'
-          ],
-          buttonText: 'View Project in Faculty Portal',
-          buttonUrl: facultyReviewUrl,
-          alertType: 'success'
-        });
-
-        await notifyUser({
-          userId: faculty.id || faculty._id,
-          userModel: 'Faculty',
-          userRole: 'faculty',
-          userEmail: faculty.email,
-          userName: faculty.name,
-          userPhone: faculty.phone,
-          preferences: faculty.notificationPreferences || { inApp: true, email: true },
-          projectId: project.id,
-          milestoneId: milestone.id,
-          type: `MILESTONE_COMPLETED_${milestone.id}_${Date.now()}`,
-          title: notifTitle,
-          message: notifMsg,
-          emailHtml,
-          isDirectAction: true,
-          force: true
-        });
-      }
-    }
-
     // Recalculate project progress
     await recalculateProgress(milestone.projectId, milestone.id);
 

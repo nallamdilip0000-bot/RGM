@@ -134,7 +134,8 @@ const runDeadlineChecker = async (options = {}) => {
   // 1. CHECK MILESTONES DEADLINES (Alert ALL team members in the project)
   // =========================================================================
   try {
-    const milestones = await Milestones.listAll(m => m.status !== 'Completed');
+    // Fetch incomplete milestones (exclude if status is Completed or progress is 100%)
+    const milestones = await Milestones.listAll(m => m.status !== 'Completed' && Number(m.progress || 0) < 100);
 
     for (const milestone of milestones) {
       if (!milestone.deadline || !milestone.projectId) continue;

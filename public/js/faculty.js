@@ -39,12 +39,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupRubricLiveCalculation();
 
   // Document & Submissions Filters
+  document.getElementById('facultyDocYearFilter')?.addEventListener('change', window.handleFacultyDocYearFilterChange);
   document.getElementById('facultyDocProjectFilter')?.addEventListener('change', renderFacultyDocuments);
   document.getElementById('facultyDocCategoryFilter')?.addEventListener('change', renderFacultyDocuments);
   document.getElementById('btnRefreshFacultyDocs')?.addEventListener('click', () => {
     loadFacultyDocuments();
     showToast('Submissions refreshed!', 'info');
   });
+
+  // Mentorship Attendance Filters
+  document.getElementById('filterAttendanceYear')?.addEventListener('change', window.handleAttendanceYearFilterChange);
+  document.getElementById('filterAttendanceProject')?.addEventListener('change', renderFacultyAttendanceTable);
 
   // Overview Tab Year Filter
   document.getElementById('overviewYearFilter')?.addEventListener('change', renderFacultyProjectCards);
@@ -220,23 +225,16 @@ async function loadAssignedProjects() {
       document.getElementById('cardPendingEvaluations').textContent = pendingEval;
       document.getElementById('cardAvgMarks').textContent = `${avgMarks} / 100`;
 
-      // Populate Document Project Filter Dropdown
-      const docProjFilter = document.getElementById('facultyDocProjectFilter');
-      if (docProjFilter) {
-        docProjFilter.innerHTML = '<option value="ALL">All Assigned Projects</option>' +
-          assignedProjects.map(p => `<option value="${p._id || p.id}">${escapeHtml(p.projectName)}</option>`).join('');
-      }
+      // Populate Document Project Filter Dropdown (Cascaded by Year)
+      updateFacultyDocProjectFilterOptions();
 
-      // Populate Attendance Project Filter & Modal Dropdowns
-      const attProjFilter = document.getElementById('filterAttendanceProject');
-      if (attProjFilter) {
-        attProjFilter.innerHTML = '<option value="ALL">All Mentored Projects</option>' +
-          assignedProjects.map(p => `<option value="${p._id || p.id}">${escapeHtml(p.projectName)}</option>`).join('');
-      }
+      // Populate Attendance Project Filter Dropdown (Cascaded by Year)
+      updateAttendanceProjectFilterOptions();
+
       const meetProjSelect = document.getElementById('meetingProjectSelect');
       if (meetProjSelect) {
         meetProjSelect.innerHTML = '<option value="">-- Choose Project --</option>' +
-          assignedProjects.map(p => `<option value="${p._id || p.id}">${escapeHtml(p.projectName)}</option>`).join('');
+          assignedProjects.map(p => `<option value="${p._id || p.id}">[${normalizeFacultyYear(p.year) || 'Project'}] ${escapeHtml(p.projectName)} (${p.department || 'CSE'})</option>`).join('');
       }
 
       // Check for submitted projects requiring approval
@@ -437,20 +435,25 @@ function normalizeFacultyDept(dept) {
 }
 
 function normalizeFacultyYear(yr) {
-  if (!yr) return '3rd Year';
+  if (!yr) return '';
   const key = String(yr).trim().toLowerCase();
-  return FAC_YEAR_MAP[key] || yr.trim();
+  if (FAC_YEAR_MAP[key]) return FAC_YEAR_MAP[key];
+
+  if (/\b(1|1st|first|i)\b/i.test(key) && !/\b(2|2nd|3|3rd|4|4th|ii|iii|iv)\b/i.test(key)) return '1st Year';
+  if (/\b(2|2nd|second|ii)\b/i.test(key) && !/\b(3|3rd|4|4th|iii|iv)\b/i.test(key)) return '2nd Year';
+  if (/\b(3|3rd|third|iii)\b/i.test(key) && !/\b(4|4th|iv)\b/i.test(key)) return '3rd Year';
+  if (/\b(4|4th|fourth|iv)\b/i.test(key)) return '4th Year';
+
+  return yr.trim();
 }
 
 function matchYear(actualYear, filterYear) {
   if (!filterYear || filterYear === 'ALL' || filterYear === '') return true;
-  const nActual = normalizeFacultyYear(actualYear || '3rd Year').toLowerCase();
-  const nFilter = normalizeFacultyYear(filterYear).toLowerCase();
-  if (nActual === nFilter) return true;
-
-  const a = String(actualYear || '3rd Year').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const f = String(filterYear).toLowerCase().replace(/[^a-z0-9]/g, '');
-  return a.includes(f) || f.includes(a);
+  if (!actualYear) return false;
+  const nActual = normalizeFacultyYear(actualYear);
+  const nFilter = normalizeFacultyYear(filterYear);
+  if (!nActual || !nFilter) return false;
+  return nActual.toLowerCase() === nFilter.toLowerCase();
 }
 
 function getMeetingYear(m) {
@@ -465,7 +468,7 @@ function getMeetingYear(m) {
     const rWithYear = m.attendanceRecords.find(r => r.year);
     if (rWithYear && rWithYear.year) return normalizeFacultyYear(rWithYear.year);
   }
-  return '3rd Year';
+  return '';
 }
 
 function getMeetingDept(m) {
@@ -1528,10 +1531,17 @@ function renderFacultyDocuments() {
   const container = document.getElementById('facultyDocumentsListContainer');
   if (!container) return;
 
+  const yearFilter = document.getElementById('facultyDocYearFilter')?.value || 'ALL';
   const projFilter = document.getElementById('facultyDocProjectFilter')?.value || 'ALL';
   const catFilter = document.getElementById('facultyDocCategoryFilter')?.value || 'ALL';
 
   let filtered = facultyDocumentsList;
+  if (yearFilter !== 'ALL' && yearFilter !== '') {
+    filtered = filtered.filter(d => {
+      const docYear = d.projectYear || (assignedProjects.find(p => String(p._id || p.id) === String(d.projectId))?.year);
+      return matchYear(docYear, yearFilter);
+    });
+  }
   if (projFilter !== 'ALL') {
     filtered = filtered.filter(d => String(d.projectId) === String(projFilter));
   }
@@ -1659,6 +1669,82 @@ window.openFacultyProjectDocuments = function(projectId) {
   renderFacultyDocuments();
 };
 
+window.updateFacultyDocProjectFilterOptions = function() {
+  const docProjFilter = document.getElementById('facultyDocProjectFilter');
+  if (!docProjFilter) return;
+  const yearFilter = document.getElementById('facultyDocYearFilter')?.value || 'ALL';
+  const currentVal = docProjFilter.value;
+
+  const validProjects = assignedProjects.filter(p => {
+    if (yearFilter === 'ALL' || !yearFilter) return true;
+    return matchYear(p.year, yearFilter);
+  });
+
+  const label = (yearFilter && yearFilter !== 'ALL') ? `All ${yearFilter} Projects` : 'All Assigned Projects';
+  let optionsHtml = `<option value="ALL">${escapeHtml(label)}</option>`;
+
+  if (validProjects.length === 0 && yearFilter !== 'ALL') {
+    optionsHtml += `<option value="" disabled>(No projects for ${escapeHtml(yearFilter)})</option>`;
+  } else {
+    optionsHtml += validProjects.map(p => {
+      const yrBadge = normalizeFacultyYear(p.year) || '2nd Year';
+      return `<option value="${p._id || p.id}">${escapeHtml(p.projectName)} (${yrBadge})</option>`;
+    }).join('');
+  }
+
+  docProjFilter.innerHTML = optionsHtml;
+
+  const isStillValid = validProjects.some(p => String(p._id || p.id) === String(currentVal));
+  if (isStillValid && currentVal !== 'ALL') {
+    docProjFilter.value = currentVal;
+  } else {
+    docProjFilter.value = 'ALL';
+  }
+};
+
+window.handleFacultyDocYearFilterChange = function() {
+  updateFacultyDocProjectFilterOptions();
+  renderFacultyDocuments();
+};
+
+window.updateAttendanceProjectFilterOptions = function() {
+  const attProjFilter = document.getElementById('filterAttendanceProject');
+  if (!attProjFilter) return;
+  const yearFilter = document.getElementById('filterAttendanceYear')?.value || 'ALL';
+  const currentVal = attProjFilter.value;
+
+  const validProjects = assignedProjects.filter(p => {
+    if (yearFilter === 'ALL' || !yearFilter) return true;
+    return matchYear(p.year, yearFilter);
+  });
+
+  const label = (yearFilter && yearFilter !== 'ALL') ? `All ${yearFilter} Projects` : 'All Mentored Projects';
+  let optionsHtml = `<option value="ALL">${escapeHtml(label)}</option>`;
+
+  if (validProjects.length === 0 && yearFilter !== 'ALL') {
+    optionsHtml += `<option value="" disabled>(No projects for ${escapeHtml(yearFilter)})</option>`;
+  } else {
+    optionsHtml += validProjects.map(p => {
+      const yrBadge = normalizeFacultyYear(p.year) || '2nd Year';
+      return `<option value="${p._id || p.id}">${escapeHtml(p.projectName)} (${yrBadge})</option>`;
+    }).join('');
+  }
+
+  attProjFilter.innerHTML = optionsHtml;
+
+  const isStillValid = validProjects.some(p => String(p._id || p.id) === String(currentVal));
+  if (isStillValid && currentVal !== 'ALL') {
+    attProjFilter.value = currentVal;
+  } else {
+    attProjFilter.value = 'ALL';
+  }
+};
+
+window.handleAttendanceYearFilterChange = function() {
+  updateAttendanceProjectFilterOptions();
+  renderFacultyAttendanceTable();
+};
+
 window.renderFacultyProjectCards = renderFacultyProjectCards;
 window.renderFacultyProjectsTable = renderFacultyProjectsTable;
 window.renderPendingEvaluations = renderPendingEvaluations;
@@ -1666,6 +1752,8 @@ window.renderCompletedEvaluations = renderCompletedEvaluations;
 window.renderStudentsDirectory = renderStudentsDirectory;
 window.renderFacultyDocuments = renderFacultyDocuments;
 window.loadFacultyDocuments = loadFacultyDocuments;
+window.renderFacultyAttendanceTable = renderFacultyAttendanceTable;
+window.loadFacultyAttendance = loadFacultyAttendance;
 
 // --------------------------------------------------------------------------
 // MENTORSHIP MEETINGS & ATTENDANCE MANAGEMENT
@@ -1676,19 +1764,13 @@ async function loadFacultyAttendance() {
   const tbody = document.getElementById('facultyAttendanceTableBody');
   if (!tbody) return;
 
-  // Populate project filters and modal selects if needed
-  const filterProj = document.getElementById('filterAttendanceProject');
-  if (filterProj && filterProj.options.length <= 1 && assignedProjects.length > 0) {
-    const currentVal = filterProj.value;
-    filterProj.innerHTML = '<option value="ALL">All Mentored Projects</option>' +
-      assignedProjects.map(p => `<option value="${p._id || p.id}">${escapeHtml(p.projectName)} (${p.year || '3rd Year'})</option>`).join('');
-    if (currentVal) filterProj.value = currentVal;
-  }
+  // Populate project filters and modal selects with Year context
+  updateAttendanceProjectFilterOptions();
 
   const meetingProjSel = document.getElementById('meetingProjectSelect');
-  if (meetingProjSel && meetingProjSel.options.length <= 1 && assignedProjects.length > 0) {
+  if (meetingProjSel && assignedProjects.length > 0) {
     meetingProjSel.innerHTML = '<option value="">-- Select Project --</option>' +
-      assignedProjects.map(p => `<option value="${p._id || p.id}">${escapeHtml(p.projectName)} (${p.year || '3rd Year'} &bull; ${p.department || 'CSE'})</option>`).join('');
+      assignedProjects.map(p => `<option value="${p._id || p.id}">[${normalizeFacultyYear(p.year) || 'Project'}] ${escapeHtml(p.projectName)} (${p.department || 'CSE'})</option>`).join('');
   }
 
   try {

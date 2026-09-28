@@ -308,9 +308,21 @@ router.get('/faculty', verifyToken, requireRole('faculty', 'admin'), async (req,
       docs = await ProjectDocuments.listAll(d => assignedProjectIds.has(String(d.projectId)));
     }
 
+    // Enrich with canonical project year & metadata
+    const enrichedDocs = docs.map(d => {
+      const p = existingProjectMap.get(String(d.projectId));
+      return {
+        ...d,
+        projectName: d.projectName || p?.projectName || 'Project',
+        projectDomain: d.projectDomain || p?.domain || '',
+        projectYear: d.projectYear || p?.year || '',
+        projectDepartment: d.projectDepartment || p?.department || ''
+      };
+    });
+
     res.json({
       success: true,
-      data: docs
+      data: enrichedDocs
     });
   } catch (err) {
     console.error('Fetch Faculty Documents Error:', err);

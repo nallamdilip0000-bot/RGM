@@ -713,6 +713,28 @@ async function loadAllocations() {
   }
 }
 
+const ADMIN_YEAR_MAP = {
+  '1': '1st Year', '1st': '1st Year', '1st year': '1st Year', 'i': '1st Year', 'i year': '1st Year', 'first year': '1st Year',
+  '2': '2nd Year', '2nd': '2nd Year', '2nd year': '2nd Year', 'ii': '2nd Year', 'ii year': '2nd Year', 'second year': '2nd Year',
+  '3': '3rd Year', '3rd': '3rd Year', '3rd year': '3rd Year', 'iii': '3rd Year', 'iii year': '3rd Year', 'third year': '3rd Year',
+  '4': '4th Year', '4th': '4th Year', '4th year': '4th Year', 'iv': '4th Year', 'iv year': '4th Year', 'fourth year': '4th Year'
+};
+function normalizeAdminYear(yr) {
+  if (!yr) return '';
+  const k = String(yr).trim().toLowerCase();
+  if (ADMIN_YEAR_MAP[k]) return ADMIN_YEAR_MAP[k];
+  if (/\b(1|1st|first|i)\b/i.test(k) && !/\b(2|2nd|3|3rd|4|4th|ii|iii|iv)\b/i.test(k)) return '1st Year';
+  if (/\b(2|2nd|second|ii)\b/i.test(k) && !/\b(3|3rd|4|4th|iii|iv)\b/i.test(k)) return '2nd Year';
+  if (/\b(3|3rd|third|iii)\b/i.test(k) && !/\b(4|4th|iv)\b/i.test(k)) return '3rd Year';
+  if (/\b(4|4th|fourth|iv)\b/i.test(k)) return '4th Year';
+  return yr.trim();
+}
+function matchAdminYear(y1, y2) {
+  if (!y2 || y2 === 'ALL' || y2 === '') return true;
+  if (!y1) return false;
+  return normalizeAdminYear(y1).toLowerCase() === normalizeAdminYear(y2).toLowerCase();
+}
+
 // Render current allocations table with filters
 function renderAllocationsTable() {
   const tbody = document.getElementById('allocationsTableBody');
@@ -724,7 +746,7 @@ function renderAllocationsTable() {
 
   const filtered = cachedAllocations.filter(a => {
     if (deptFilter && (a.department || '').toLowerCase() !== deptFilter.toLowerCase()) return false;
-    if (yearFilter && (a.year || '').toLowerCase() !== yearFilter.toLowerCase()) return false;
+    if (yearFilter && !matchAdminYear(a.year, yearFilter)) return false;
     if (statusFilter !== '') {
       const boolVal = statusFilter === 'true';
       if (a.active !== boolVal) return false;

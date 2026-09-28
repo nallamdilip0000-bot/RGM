@@ -106,7 +106,14 @@ function normalizeDepartment(dept) {
 function normalizeYear(yr) {
   if (!yr) return '';
   const key = String(yr).trim().toLowerCase();
-  return YEAR_MAP[key] || yr.trim();
+  if (YEAR_MAP[key]) return YEAR_MAP[key];
+
+  if (/\b(1|1st|first|i)\b/i.test(key) && !/\b(2|2nd|3|3rd|4|4th|ii|iii|iv)\b/i.test(key)) return '1st Year';
+  if (/\b(2|2nd|second|ii)\b/i.test(key) && !/\b(3|3rd|4|4th|iii|iv)\b/i.test(key)) return '2nd Year';
+  if (/\b(3|3rd|third|iii)\b/i.test(key) && !/\b(4|4th|iv)\b/i.test(key)) return '3rd Year';
+  if (/\b(4|4th|fourth|iv)\b/i.test(key)) return '4th Year';
+
+  return yr.trim();
 }
 
 function isDepartmentMatch(dept1, dept2) {

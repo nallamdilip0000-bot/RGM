@@ -87,8 +87,14 @@ async function recalculateProgress(projectId, specificMilestoneId = null) {
 
     // Update project progress in DB
     const projUpdates = { progress: projectProgress };
-    if (projectProgress > 0 && project.status === 'Approved') {
-      projUpdates.status = 'In Progress';
+    if (projectProgress === 100) {
+      projUpdates.status = 'Completed';
+    } else if (projectProgress > 0) {
+      if (project.status === 'Approved' || project.status === 'Completed') {
+        projUpdates.status = 'In Progress';
+      }
+    } else if (project.status === 'Completed' && projectProgress < 100) {
+      projUpdates.status = 'Approved';
     }
 
     await Projects.update(projIdStr, projUpdates);

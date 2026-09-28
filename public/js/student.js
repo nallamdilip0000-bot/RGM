@@ -849,8 +849,8 @@ async function loadDashboardData() {
 
       // Update KPI Cards
       const total = myProjects.length;
-      const active = myProjects.filter(p => p.status === 'Approved' || p.status === 'In Progress').length;
-      const completed = myProjects.filter(p => p.status === 'Completed').length;
+      const active = myProjects.filter(p => p.status === 'Approved' || p.status === 'In Progress' || p.status === 'Submitted' || (p.status !== 'Rejected' && (p.progress || 0) < 100)).length;
+      const completed = myProjects.filter(p => p.status === 'Completed' && (p.progress || 0) >= 100).length;
       const overallAvg = total === 0 ? 0 : Math.round(myProjects.reduce((acc, p) => acc + (p.progress || 0), 0) / total);
 
       document.getElementById('cardTotalProjects').textContent = total;

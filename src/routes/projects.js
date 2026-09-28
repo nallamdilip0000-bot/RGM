@@ -463,8 +463,10 @@ router.get('/', verifyToken, async (req, res) => {
     const enhanced = await Promise.all(
       projects.map(async p => {
         const { projectProgress } = await recalculateProgress(p.id);
+        const updatedDoc = await Projects.findById(p.id);
         return {
           ...p,
+          status: updatedDoc?.status || p.status,
           progress: projectProgress !== undefined ? projectProgress : (p.progress || 0)
         };
       })

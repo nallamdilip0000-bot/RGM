@@ -58,11 +58,11 @@ router.post('/', verifyToken, requireRole('faculty', 'admin'), async (req, res) 
       evaluatedAt: new Date().toISOString()
     });
 
-    if (project.status !== 'Completed') {
+    // Evaluations are strictly confidential to faculty & administration
+    const { projectProgress } = await recalculateProgress(project.id);
+    if (projectProgress >= 100 && project.status !== 'Completed') {
       await Projects.update(project.id, { status: 'Completed' });
     }
-
-    // Evaluations are strictly confidential to faculty & administration (no student notification)
 
     res.json({
       success: true,

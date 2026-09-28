@@ -102,6 +102,8 @@ function formatReadableDate(dateStr) {
   }
 }
 
+let isDeadlineCheckerRunning = false;
+
 /**
  * Scans incomplete Milestones and Tasks in Firebase and triggers 4 daily deadline emails.
  * Multi-channel alerts (Email, In-App) are dispatched with checkpoint slot deduplication.
@@ -109,17 +111,24 @@ function formatReadableDate(dateStr) {
  * @param {Object} options { slot: 1|2|3|4, force: boolean }
  */
 const runDeadlineChecker = async (options = {}) => {
-  const now = new Date();
-  const currentSlot = getCurrentDeadlineSlot(now, options.slot);
-  const todayDateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
-  const slotSuffix = options.force ? `_FORCED_${Date.now()}` : `_${todayDateStr}_${currentSlot.slotTag}`;
+  if (isDeadlineCheckerRunning && !options.force) {
+    console.log('[DeadlineChecker] Another deadline check run is currently in progress. Skipping overlapping execution.');
+    return { success: true, skipped: true, message: 'Already running' };
+  }
+  isDeadlineCheckerRunning = true;
 
-  console.log(`[DeadlineChecker] Running Slot ${currentSlot.slot} (${currentSlot.name} - ${currentSlot.time}) for ${todayDateStr}...`);
-  const appUrl = process.env.APP_URL || 'http://localhost:5000';
+  try {
+    const now = new Date();
+    const currentSlot = getCurrentDeadlineSlot(now, options.slot);
+    const todayDateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const slotSuffix = options.force ? `_FORCED_${Date.now()}` : `_${todayDateStr}_${currentSlot.slotTag}`;
 
-  let processedMilestones = 0;
-  let processedTasks = 0;
-  let notificationsTriggered = 0;
+    console.log(`[DeadlineChecker] Running Slot ${currentSlot.slot} (${currentSlot.name} - ${currentSlot.time}) for ${todayDateStr}...`);
+    const appUrl = process.env.APP_URL || 'http://localhost:5000';
+
+    let processedMilestones = 0;
+    let processedTasks = 0;
+    let notificationsTriggered = 0;
 
   // =========================================================================
   // 1. CHECK MILESTONES DEADLINES (Alert ALL team members in the project)
@@ -220,14 +229,17 @@ const runDeadlineChecker = async (options = {}) => {
 
         // Ensure Team Leader is always explicitly added
         if (project.teamLeaderId) {
-          const leaderDoc = await Users.findById(project.teamLeaderId);
+          const leaderId = project.teamLeaderId?.id || project.teamLeaderId?._id || (typeof project.teamLeaderId === 'string' ? project.teamLeaderId : null);
+          const leaderDoc = typeof project.teamLeaderId === 'object' && project.teamLeaderId.email
+            ? project.teamLeaderId
+            : (leaderId ? await Users.findById(leaderId) : null);
           if (leaderDoc) {
             const leaderEmail = (leaderDoc.email || '').trim().toLowerCase();
-            const dedupeKey = leaderEmail ? `email:${leaderEmail}` : `id:${leaderDoc.id}`;
+            const dedupeKey = leaderEmail ? `email:${leaderEmail}` : `id:${leaderDoc.id || leaderDoc._id}`;
             if (!seenEmails.has(dedupeKey)) {
               seenEmails.add(dedupeKey);
               uniqueRecipients.push({
-                id: leaderDoc.id,
+                id: leaderDoc.id || leaderDoc._id,
                 name: leaderDoc.name || 'Team Leader',
                 email: leaderEmail,
                 phone: leaderDoc.phone || '',
@@ -466,10 +478,13 @@ const runDeadlineChecker = async (options = {}) => {
 
         // Add Team Leader
         if (project && project.teamLeaderId) {
-          const leaderDoc = await Users.findById(project.teamLeaderId);
+          const leaderId = project.teamLeaderId?.id || project.teamLeaderId?._id || (typeof project.teamLeaderId === 'string' ? project.teamLeaderId : null);
+          const leaderDoc = typeof project.teamLeaderId === 'object' && project.teamLeaderId.email
+            ? project.teamLeaderId
+            : (leaderId ? await Users.findById(leaderId) : null);
           if (leaderDoc) {
             await addCandidate({
-              id: leaderDoc.id,
+              id: leaderDoc.id || leaderDoc._id,
               name: leaderDoc.name || 'Team Leader',
               email: leaderDoc.email,
               phone: leaderDoc.phone || '',
@@ -550,16 +565,19 @@ const runDeadlineChecker = async (options = {}) => {
     console.error('[DeadlineChecker] Task check error:', tErr.message);
   }
 
-  console.log(`[DeadlineChecker] Completed Slot ${currentSlot.slot} (${currentSlot.name}). Milestones: ${processedMilestones}, Tasks: ${processedTasks}, Notifications sent: ${notificationsTriggered}`);
-  return {
-    success: true,
-    slot: currentSlot,
-    processedMilestones,
-    processedTasks,
-    notificationsTriggered,
-    date: todayDateStr,
-    timestamp: now
-  };
+    console.log(`[DeadlineChecker] Completed Slot ${currentSlot.slot} (${currentSlot.name}). Milestones: ${processedMilestones}, Tasks: ${processedTasks}, Notifications sent: ${notificationsTriggered}`);
+    return {
+      success: true,
+      slot: currentSlot,
+      processedMilestones,
+      processedTasks,
+      notificationsTriggered,
+      date: todayDateStr,
+      timestamp: now
+    };
+  } finally {
+    isDeadlineCheckerRunning = false;
+  }
 };
 
 module.exports = {

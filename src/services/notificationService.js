@@ -1,6 +1,9 @@
 const { Notifications } = require('./dbService');
 const { sendEmail, generateProfessionalEmailTemplate } = require('./emailService');
 
+// Global In-Flight lock to prevent race-condition duplicates during asynchronous network I/O
+const inFlightDispatches = new Set();
+
 /**
  * Dispatch a notification across configured channels (in-app, email)
  * with strict duplicate prevention and user preference checks using Firebase.
@@ -36,6 +39,15 @@ const notifyUser = async ({
     ? userEmail.trim().toLowerCase()
     : null;
   const effectiveUserId = userId || cleanEmail || userPhone || `usr_${Date.now()}`;
+
+  const inFlightKey = `${cleanEmail || effectiveUserId}:${type}:${projectId || ''}:${milestoneId || ''}:${taskId || ''}`;
+  if (!force && inFlightDispatches.has(inFlightKey)) {
+    console.log(`[Notification In-Flight Lock] Notification for "${inFlightKey}" is currently being processed. Skipping duplicate dispatch.`);
+    return results;
+  }
+  if (!force) inFlightDispatches.add(inFlightKey);
+
+  try {
 
   // Determine notification category
   const isDirectAction = explicitDirectAction !== null
@@ -197,6 +209,9 @@ const notifyUser = async ({
   }
 
   return results;
+} finally {
+  if (!force) inFlightDispatches.delete(inFlightKey);
+}
 };
 
 /**

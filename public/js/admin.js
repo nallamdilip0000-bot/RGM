@@ -230,7 +230,7 @@ async function handleAddFacultySubmit(e) {
 }
 
 // Open Edit Faculty
-window.openEditFacultyModal = function(id) {
+window.openEditFacultyModal = function (id) {
   const f = allFaculty.find(item => (item._id || item.id) === id);
   if (!f) return;
 
@@ -264,7 +264,7 @@ async function handleEditFacultySubmit(e) {
 }
 
 // Toggle Faculty Active / Inactive
-window.toggleFacultyStatus = async function(id, newStatus) {
+window.toggleFacultyStatus = async function (id, newStatus) {
   try {
     await apiRequest(`/faculty/${id}`, 'PUT', { isActive: newStatus });
     showToast(`Faculty account ${newStatus ? 'enabled' : 'disabled'}!`, 'success');
@@ -275,7 +275,7 @@ window.toggleFacultyStatus = async function(id, newStatus) {
 };
 
 // Open Reset Password
-window.openResetPasswordModal = function(id, name) {
+window.openResetPasswordModal = function (id, name) {
   document.getElementById('resetFacIdHidden').value = id;
   document.getElementById('resetFacInfo').textContent = `Resetting password for: ${name}`;
   document.getElementById('resetNewPassword').value = '';
@@ -297,7 +297,7 @@ async function handleResetPasswordSubmit(e) {
 }
 
 // Delete Faculty
-window.deleteFaculty = async function(id, name) {
+window.deleteFaculty = async function (id, name) {
   if (!confirm(`Are you sure you want to permanently delete faculty member "${name}"?`)) return;
 
   try {
@@ -353,7 +353,7 @@ async function loadStudentsDirectory() {
   }
 }
 
-window.toggleStudentStatus = async function(id) {
+window.toggleStudentStatus = async function (id) {
   try {
     const res = await apiRequest(`/admin/students/${id}/status`, 'PUT');
     showToast(res.message, 'success');
@@ -401,7 +401,7 @@ async function loadAllProjects() {
   }
 }
 
-window.adminDeleteProject = async function(id, name) {
+window.adminDeleteProject = async function (id, name) {
   if (!confirm(`Warning: Deleting "${name}" will cascade delete all milestones, tasks, and evaluations. Proceed?`)) return;
 
   try {
@@ -771,7 +771,7 @@ function renderAllocationsTable() {
 }
 
 // Remove / Deactivate Allocation
-window.handleRemoveAllocation = async function(id, facultyName) {
+window.handleRemoveAllocation = async function (id, facultyName) {
   // Requirement 9: Ask confirmation
   if (!confirm(`Are you sure you want to remove this faculty allocation for ${facultyName}?`)) {
     return;
@@ -789,7 +789,7 @@ window.handleRemoveAllocation = async function(id, facultyName) {
 };
 
 // Reactivate Allocation
-window.handleReactivateAllocation = async function(id) {
+window.handleReactivateAllocation = async function (id) {
   try {
     const res = await apiRequest(`/admin/faculty-allocations/${id}`, 'PUT', { active: true });
     if (res.success) {
@@ -802,7 +802,7 @@ window.handleReactivateAllocation = async function(id) {
 };
 
 // Open Edit Allocation Modal
-window.openEditAllocationModal = function(id) {
+window.openEditAllocationModal = function (id) {
   const allocation = cachedAllocations.find(a => (a.id || a._id) === id);
   if (!allocation) return;
 

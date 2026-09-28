@@ -62,6 +62,27 @@ router.post('/', verifyToken, async (req, res) => {
 // ==========================================
 router.get('/:projectId', verifyToken, async (req, res) => {
   try {
+    const project = await Projects.findById(req.params.projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found.' });
+    }
+
+    if (req.user.role === 'student') {
+      const studentId = String(req.user.id);
+      const studentReg = (req.user.registerNumber || '').toUpperCase();
+      const leaderId = String(project.teamLeaderId?.id || project.teamLeaderId?._id || project.teamLeaderId);
+      const memberIds = Array.isArray(project.teamMemberIds)
+        ? project.teamMemberIds.map(m => String(m?.id || m?._id || m))
+        : [];
+      const memberRegs = Array.isArray(project.teamMemberIds)
+        ? project.teamMemberIds.map(m => String(m?.registerNumber || '').toUpperCase())
+        : [];
+      const isEnrolled = leaderId === studentId || memberIds.includes(studentId) || (studentReg && memberRegs.includes(studentReg));
+      if (!isEnrolled) {
+        return res.status(403).json({ success: false, message: 'Access denied. You do not belong to this project.' });
+      }
+    }
+
     const milestones = await Milestones.findByProject(req.params.projectId);
     res.json({
       success: true,

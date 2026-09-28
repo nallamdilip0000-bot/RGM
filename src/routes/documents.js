@@ -248,6 +248,22 @@ router.get('/project/:projectId', verifyToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found.' });
     }
 
+    if (req.user.role === 'student') {
+      const studentId = String(req.user.id);
+      const studentReg = (req.user.registerNumber || '').toUpperCase();
+      const leaderId = String(project.teamLeaderId?.id || project.teamLeaderId?._id || project.teamLeaderId);
+      const memberIds = Array.isArray(project.teamMemberIds)
+        ? project.teamMemberIds.map(m => String(m?.id || m?._id || m))
+        : [];
+      const memberRegs = Array.isArray(project.teamMemberIds)
+        ? project.teamMemberIds.map(m => String(m?.registerNumber || '').toUpperCase())
+        : [];
+      const isEnrolled = leaderId === studentId || memberIds.includes(studentId) || (studentReg && memberRegs.includes(studentReg));
+      if (!isEnrolled) {
+        return res.status(403).json({ success: false, message: 'Access denied. You do not belong to this project.' });
+      }
+    }
+
     const docs = await ProjectDocuments.findByProject(projectId);
     res.json({
       success: true,

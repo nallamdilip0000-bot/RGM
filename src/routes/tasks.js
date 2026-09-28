@@ -280,16 +280,17 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     // If deadline is modified:
     if (deadline) {
-      const newIso = new Date(deadline).toISOString();
+      const newDateStr = new Date(deadline).toISOString().split('T')[0];
       const currentAllocatedIso = task.allocatedDeadline || task.deadline;
-      const isDateChanged = new Date(currentAllocatedIso).toISOString().split('T')[0] !== newIso.split('T')[0];
+      const currentDateStr = currentAllocatedIso ? new Date(currentAllocatedIso).toISOString().split('T')[0] : '';
+      const isDateChanged = Boolean(currentDateStr && newDateStr && currentDateStr !== newDateStr);
 
       if (isDateChanged) {
         if (req.user.role === 'student') {
           // Student requested a new deadline -> requires faculty approval
           isDeadlineChangeRequested = true;
           updates.previousDeadline = currentAllocatedIso;
-          updates.requestedDeadline = newIso;
+          updates.requestedDeadline = new Date(deadline).toISOString();
           updates.deadlineStatus = 'Pending_Approval';
           updates.deadlineChangeReason = deadlineChangeReason ? deadlineChangeReason.trim() : 'Student updated task deadline after offline faculty discussion';
           updates.deadlineRequestedBy = req.user.name || req.userDoc?.name || 'Student';
@@ -299,9 +300,10 @@ router.put('/:id', verifyToken, async (req, res) => {
           updates.allocatedDeadline = currentAllocatedIso;
 
           oldAllocatedDeadlineStr = new Date(currentAllocatedIso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-          newRequestedDeadlineStr = new Date(newIso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          newRequestedDeadlineStr = new Date(deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         } else {
           // Faculty or Admin directly changes deadline
+          const newIso = new Date(deadline).toISOString();
           updates.deadline = newIso;
           updates.allocatedDeadline = newIso;
           updates.previousDeadline = currentAllocatedIso;

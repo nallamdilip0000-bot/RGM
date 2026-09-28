@@ -1223,7 +1223,7 @@ async function handleEditMilestoneSubmit(e) {
       deadlineChangeReason
     });
     if (res.success) {
-      showToast('Milestone updated! Faculty mentor notified for deadline approval.', 'success');
+      showToast(res.message || 'Milestone updated successfully.', 'success');
       document.getElementById('editMilestoneModal').classList.remove('active');
       handleMilestoneProjectChange(selectedProjectForMilestone);
       loadDashboardData();
@@ -1587,7 +1587,7 @@ async function handleEditTaskSubmit(e) {
       deadlineChangeReason
     });
     if (res.success) {
-      showToast('Task updated! Faculty mentor notified for deadline approval.', 'success');
+      showToast(res.message || 'Task updated successfully.', 'success');
       document.getElementById('editTaskModal').classList.remove('active');
       handleTaskProjectChange(selectedProjectForTask);
       loadDashboardData();

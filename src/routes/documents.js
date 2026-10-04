@@ -173,7 +173,7 @@ router.post('/upload', verifyToken, (req, res) => {
         const studentName = req.user.name || 'Student';
         const studentRegNo = req.user.registerNumber ? ` (${req.user.registerNumber})` : '';
         const appUrl = process.env.APP_URL || 'http://localhost:5000';
-        const facultyPortalUrl = `${appUrl}/faculty/index.html?tab=tabDocuments&projectId=${project.id}`;
+        const facultyPortalUrl = `${appUrl}/faculty/?tab=tabDocuments&projectId=${project.id}`;
 
         const notifTitle = `📄 New Document Uploaded: "${docTitle}" (${effectiveSubmissionType})`;
         const notifMessage = `${studentName}${studentRegNo} uploaded a new ${docCategory} [${submissionScope}]: "${docTitle}" for project "${project.projectName}".`;

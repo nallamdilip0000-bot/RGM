@@ -149,7 +149,7 @@ const runDeadlineChecker = async (options = {}) => {
       const diffDays = getCalendarDayDiff(milestone.deadline, now);
       if (diffDays === null) continue;
 
-      const projectUrl = `${appUrl}/student/index.html?projectId=${project.id || project._id}`;
+      const projectUrl = `${appUrl}/student/?projectId=${project.id || project._id}`;
 
       let baseReminderType = null;
       let reminderTitle = '';
@@ -364,7 +364,7 @@ const runDeadlineChecker = async (options = {}) => {
       if (diffDays === null) continue;
 
       const deadlineStr = formatReadableDate(task.deadline);
-      const projectUrl = `${appUrl}/student/index.html?projectId=${project?.id || project?._id || ''}`;
+      const projectUrl = `${appUrl}/student/?projectId=${project?.id || project?._id || ''}`;
 
       let baseReminderType = null;
       let reminderTitle = '';

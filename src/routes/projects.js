@@ -247,8 +247,8 @@ router.post('/', verifyToken, requireRole('student'), async (req, res) => {
 
     const populatedProject = await Projects.populate(project);
     const appUrl = process.env.APP_URL || 'http://localhost:5000';
-    const facultyProjectLink = `${appUrl}/faculty/index.html?projectId=${project.id}&action=review`;
-    const studentProjectLink = `${appUrl}/student/index.html?projectId=${project.id}`;
+    const facultyProjectLink = `${appUrl}/faculty/?projectId=${project.id}&action=review`;
+    const studentProjectLink = `${appUrl}/student/?projectId=${project.id}`;
     const membersList = (populatedProject.teamMemberIds || parsedMembers).map(m => `${m.name} (${m.registerNumber || 'Student'})`).join(', ');
 
     // 1. Multi-channel Notification + Live Email to Faculty Guide
@@ -699,7 +699,7 @@ router.put('/:id', verifyToken, async (req, res) => {
         const oldEmails = new Set(oldMembers.map(m => (m?.email || '').toLowerCase()).filter(Boolean));
 
         const appUrl = process.env.APP_URL || 'http://localhost:5000';
-        const projectUrl = `${appUrl}/student/index.html?projectId=${project.id}`;
+        const projectUrl = `${appUrl}/student/?projectId=${project.id}`;
         const leaderName = req.user.name || 'Team Leader';
 
         let facultyDoc = populated.facultyId || project.facultyId;
@@ -807,7 +807,7 @@ router.put('/:id', verifyToken, async (req, res) => {
         const leaderName = req.user.name || req.userDoc?.name || 'Team Leader';
         const leaderRegNo = req.user.registerNumber || req.userDoc?.registerNumber || '';
         const appUrl = process.env.APP_URL || 'http://localhost:5000';
-        const facultyProjectLink = `${appUrl}/faculty/index.html?projectId=${project.id}&action=review`;
+        const facultyProjectLink = `${appUrl}/faculty/?projectId=${project.id}&action=review`;
         const membersList = (populated.teamMemberIds || []).map(m => `${m.name} (${m.registerNumber || 'Student'})`).join(', ');
         const facEmail = (faculty.email || '').trim().toLowerCase();
 
@@ -870,7 +870,7 @@ router.put('/:id', verifyToken, async (req, res) => {
         const notifTitle = `📅 Project Deadline Changed: "${project.projectName}"`;
         const notifMsg = `Notice: ${studentName} updated the ${changeSummary} for project "${project.projectName}".`;
         const appUrl = process.env.APP_URL || 'http://localhost:5000';
-        const facultyProjectUrl = `${appUrl}/faculty/index.html?projectId=${project.id}`;
+        const facultyProjectUrl = `${appUrl}/faculty/?projectId=${project.id}`;
 
         const emailHtml = generateProfessionalEmailTemplate({
           headerTitle: 'Academic Faculty Mentorship Portal',
@@ -955,7 +955,7 @@ router.put('/:id/status', verifyToken, requireRole('faculty', 'admin'), async (r
 
     const facultyName = req.user.name || req.userDoc?.name || 'Faculty Guide';
     const appUrl = process.env.APP_URL || 'http://localhost:5000';
-    const projectUrl = `${appUrl}/student/index.html?projectId=${project.id}`;
+    const projectUrl = `${appUrl}/student/?projectId=${project.id}`;
 
     // 1. Resolve Team Leader Information
     let teamLeader = populated.teamLeaderId;

@@ -121,7 +121,7 @@ router.post('/', verifyToken, async (req, res) => {
 
     // Multi-channel Notification: Send task assignment email for EVERY task assigned
     const appUrl = process.env.APP_URL || 'http://localhost:5000';
-    const projectUrl = `${appUrl}/student/index.html?projectId=${project.id || project._id}`;
+    const projectUrl = `${appUrl}/student/?projectId=${project.id || project._id}`;
     const taskDeadlineStr = new Date(task.deadline).toLocaleDateString('en-GB', {
       weekday: 'short',
       day: '2-digit',
@@ -327,7 +327,7 @@ router.put('/:id', verifyToken, async (req, res) => {
       if (faculty) {
         const studentName = req.user.name || req.userDoc?.name || 'Student';
         const appUrl = process.env.APP_URL || 'http://localhost:5000';
-        const facultyReviewUrl = `${appUrl}/faculty/index.html?projectId=${project.id}`;
+        const facultyReviewUrl = `${appUrl}/faculty/?projectId=${project.id}`;
         const notifTitle = `⏳ Task Deadline Extension Request: "${task.name}"`;
         const notifMsg = `${studentName} requested a deadline change for task "${task.name}" in project "${project.projectName}". Previous allocated deadline: ${oldAllocatedDeadlineStr}, Requested new deadline: ${newRequestedDeadlineStr}. Reason: "${updates.deadlineChangeReason}". Please approve or reject in the Faculty Portal.`;
 

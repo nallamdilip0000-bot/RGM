@@ -218,7 +218,7 @@ const generateProfessionalEmailTemplate = ({
  */
 const sendProjectAssignedEmail = async ({ facultyEmail, facultyName, projectName, domain, teamLeaderName, teamMembers = [], deadline, projectId, department, year }) => {
   const appUrl = process.env.APP_URL || 'http://localhost:5000';
-  const projectLink = `${appUrl}/faculty/index.html?projectId=${projectId}&action=review`;
+  const projectLink = `${appUrl}/faculty/?projectId=${projectId}&action=review`;
 
   const subject = `📌 New Academic Project Assigned: "${projectName}"`;
   const membersList = teamMembers.map(m => `${m.name} (${m.registerNumber || 'Student'})`).join(', ');
@@ -258,7 +258,7 @@ const sendProjectAssignedEmail = async ({ facultyEmail, facultyName, projectName
  */
 const sendTeamMemberAddedEmail = async ({ studentEmail, studentName, projectName, domain, teamLeaderName, facultyName, deadline, projectId, department, year }) => {
   const appUrl = process.env.APP_URL || 'http://localhost:5000';
-  const projectLink = `${appUrl}/student/index.html?projectId=${projectId}`;
+  const projectLink = `${appUrl}/student/?projectId=${projectId}`;
 
   const subject = `👥 Added to New Project Team: "${projectName}"`;
 
@@ -297,7 +297,7 @@ const sendTeamMemberAddedEmail = async ({ studentEmail, studentName, projectName
  */
 const sendProjectCreationConfirmationEmail = async ({ leaderEmail, leaderName, projectName, domain, facultyName, teamMembers = [], deadline, projectId, department, year }) => {
   const appUrl = process.env.APP_URL || 'http://localhost:5000';
-  const projectLink = `${appUrl}/student/index.html?projectId=${projectId}`;
+  const projectLink = `${appUrl}/student/?projectId=${projectId}`;
 
   const subject = `🚀 Project Proposal Submitted: "${projectName}"`;
   const membersList = teamMembers.map(m => `${m.name} (${m.registerNumber || 'Student'})`).join(', ');

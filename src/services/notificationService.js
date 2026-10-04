@@ -237,7 +237,7 @@ const notifyProjectMembers = async ({
   const { Users, Projects } = require('./dbService');
   const populated = await Projects.populate(project);
   const appUrl = process.env.APP_URL || 'http://localhost:5000';
-  const targetUrl = buttonUrl || `${appUrl}/student/index.html?projectId=${project.id || project._id}`;
+  const targetUrl = buttonUrl || `${appUrl}/student/?projectId=${project.id || project._id}`;
 
   const rawMembers = [];
   if (populated.teamLeaderId) rawMembers.push(populated.teamLeaderId);

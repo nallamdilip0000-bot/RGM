@@ -168,7 +168,7 @@ router.put('/:id', verifyToken, async (req, res) => {
       if (faculty) {
         const studentName = req.user.name || req.userDoc?.name || 'Student';
         const appUrl = process.env.APP_URL || 'http://localhost:5000';
-        const facultyReviewUrl = `${appUrl}/faculty/index.html?projectId=${project.id}`;
+        const facultyReviewUrl = `${appUrl}/faculty/?projectId=${project.id}`;
         const notifTitle = `⏳ Deadline Extension Request: "${milestone.name}"`;
         const notifMsg = `${studentName} requested a deadline change for milestone "${milestone.name}" in project "${project.projectName}". Previous allocated deadline: ${oldAllocatedDeadlineStr}, Requested new deadline: ${newRequestedDeadlineStr}. Reason: "${updates.deadlineChangeReason}". Please approve or reject in the Faculty Portal.`;
 

@@ -62,7 +62,7 @@ function getUser() {
 function logout() {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
-  window.location.href = '/index.html';
+  window.location.href = '/';
 }
 
 // Universal fetch wrapper
@@ -88,7 +88,7 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
     if (response.status === 401) {
       // Token expired or invalid
       console.warn('Session expired or unauthorized.');
-      if (!window.location.pathname.endsWith('index.html') && window.location.pathname !== '/') {
+      if (window.location.pathname !== '/' && !window.location.pathname.endsWith('index.html')) {
         logout();
       }
     }
@@ -121,7 +121,7 @@ async function apiUpload(endpoint, formData) {
     const data = await response.json();
 
     if (response.status === 401) {
-      if (!window.location.pathname.endsWith('index.html') && window.location.pathname !== '/') {
+      if (window.location.pathname !== '/' && !window.location.pathname.endsWith('index.html')) {
         logout();
       }
     }
@@ -148,7 +148,7 @@ function checkAuth(requiredRole) {
     if (returnPath && returnPath !== '/' && !returnPath.includes('index.html')) {
       sessionStorage.setItem('authRedirect', returnPath);
     }
-    window.location.href = '/index.html';
+    window.location.href = '/';
     return false;
   }
 
@@ -157,7 +157,7 @@ function checkAuth(requiredRole) {
     if (user.role === 'student') window.location.href = '/student/';
     else if (user.role === 'faculty') window.location.href = '/faculty/';
     else if (user.role === 'admin') window.location.href = '/admin/';
-    else window.location.href = '/index.html';
+    else window.location.href = '/';
     return false;
   }
 

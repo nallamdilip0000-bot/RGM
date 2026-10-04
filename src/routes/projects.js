@@ -154,15 +154,19 @@ router.post('/', verifyToken, requireRole('student'), async (req, res) => {
         existingUser = await Users.findByEmail(email);
       }
 
-      if (existingUser) {
-        memberId = existingUser.id || existingUser._id;
-        name = name || existingUser.name;
-        registerNumber = registerNumber || (existingUser.registerNumber ? existingUser.registerNumber.toUpperCase() : '');
-        email = email || (existingUser.email ? existingUser.email.toLowerCase() : '');
-        phone = phone || (existingUser.phone || '');
+      if (!existingUser) {
+        return res.status(400).json({
+          success: false,
+          notRegistered: true,
+          message: `Team member with Register Number "${registerNumber || name || email || 'Student'}" is not registered on the portal. All teammates must complete Student Registration before being added to a project.`
+        });
       }
 
-      if (!name && !registerNumber) continue;
+      memberId = existingUser.id || existingUser._id;
+      name = existingUser.name || name;
+      registerNumber = (existingUser.registerNumber ? existingUser.registerNumber.toUpperCase() : registerNumber);
+      email = (existingUser.email ? existingUser.email.toLowerCase() : email);
+      phone = existingUser.phone || phone || '';
 
       // Skip if this is the team leader (already added)
       const isLeaderMember = (memberId && String(memberId) === String(teamLeaderId)) ||
@@ -180,17 +184,16 @@ router.post('/', verifyToken, requireRole('student'), async (req, res) => {
       if (registerNumber) seenRegs.add(registerNumber);
       if (email) seenEmails.add(email);
 
-      const resolvedMemberId = memberId || `mem_${Date.now()}_${i}`;
       parsedMembers.push({
-        _id: resolvedMemberId,
-        id: resolvedMemberId,
-        name: name || 'Team Member',
-        registerNumber: registerNumber || '',
+        _id: memberId,
+        id: memberId,
+        name: name,
+        registerNumber: registerNumber,
         isLeader: false,
-        department: existingUser?.department || item.department || studentDept,
-        year: existingUser?.year || item.year || studentYear,
-        email: email || '',
-        phone: phone || ''
+        department: existingUser.department || studentDept,
+        year: existingUser.year || studentYear,
+        email: email,
+        phone: phone
       });
     }
 
@@ -628,15 +631,19 @@ router.put('/:id', verifyToken, async (req, res) => {
           existingUser = await Users.findByEmail(email);
         }
 
-        if (existingUser) {
-          memberId = existingUser.id || existingUser._id;
-          name = name || existingUser.name;
-          registerNumber = registerNumber || (existingUser.registerNumber ? existingUser.registerNumber.toUpperCase() : '');
-          email = email || (existingUser.email ? existingUser.email.toLowerCase() : '');
-          phone = phone || (existingUser.phone || '');
+        if (!existingUser) {
+          return res.status(400).json({
+            success: false,
+            notRegistered: true,
+            message: `Team member with Register Number "${registerNumber || name || email || 'Student'}" is not registered on the portal. All teammates must complete Student Registration before being added to a project.`
+          });
         }
 
-        if (!name && !registerNumber) continue;
+        memberId = existingUser.id || existingUser._id;
+        name = existingUser.name || name;
+        registerNumber = (existingUser.registerNumber ? existingUser.registerNumber.toUpperCase() : registerNumber);
+        email = (existingUser.email ? existingUser.email.toLowerCase() : email);
+        phone = existingUser.phone || phone || '';
 
         const isThisLeader = (memberId && String(memberId) === leaderId) ||
           (registerNumber && registerNumber === leaderRegNo) ||
@@ -651,17 +658,16 @@ router.put('/:id', verifyToken, async (req, res) => {
         if (registerNumber) seenRegs.add(registerNumber);
         if (email) seenEmails.add(email);
 
-        const resolvedMemberId = memberId || `mem_${Date.now()}_${i}`;
         parsedMembers.push({
-          _id: resolvedMemberId,
-          id: resolvedMemberId,
-          name: name || 'Team Member',
-          registerNumber: registerNumber || '',
+          _id: memberId,
+          id: memberId,
+          name: name,
+          registerNumber: registerNumber,
           isLeader: isThisLeader,
-          department: existingUser?.department || item?.department || updates.department || project.department || 'CSE',
-          year: existingUser?.year || item?.year || updates.year || project.year || '3rd Year',
-          email: email || '',
-          phone: phone || ''
+          department: existingUser.department || updates.department || project.department || 'CSE',
+          year: existingUser.year || updates.year || project.year || '3rd Year',
+          email: email,
+          phone: phone
         });
       }
 

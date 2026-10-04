@@ -575,44 +575,35 @@
             </div>
           </div>
 
-          <!-- Team Members Section (Manual Entry by Name, Reg No, Email & Phone) -->
+          <!-- Team Members Section (Lookup Registered Student by Register Number) -->
           <div class="modal-team-box">
             <div class="modal-team-header">
               <h4 class="modal-team-title">Team Members</h4>
               <span class="badge badge-submitted" id="memberCountBadge">1 Member</span>
             </div>
-            <p class="modal-team-desc">
-              Enter team member details below (Name, Register Number, Email, Phone). Automated notifications (Email &amp; In-App) are dispatched to <strong>every team member</strong> when milestone and task deadlines approach. You (Team Leader) are member #1.
-            </p>
+            <div style="background: rgba(37, 99, 235, 0.06); border-left: 3px solid #2563eb; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 12px; color: #1e293b; line-height: 1.5;">
+              <strong>📋 Note:</strong> All teammates must complete <strong>Student Registration</strong> on the portal before they can be added to your team. Enter their Register Number below to verify and add them. You (Team Leader) are Member #1.
+            </div>
 
-            <!-- Manual Member Entry Form -->
-            <div class="modal-team-manual-entry">
-              <div class="form-group">
-                <label class="form-label" for="manualMemberName" style="font-size: 12px; margin-bottom: 4px;">Student Name *</label>
-                <input type="text" id="manualMemberName" class="form-input" placeholder="e.g. Rahul Sharma">
+            <!-- Member Lookup Form -->
+            <div class="modal-team-lookup-entry" style="display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; flex-wrap: wrap;">
+              <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                <label class="form-label" for="manualMemberRegNo" style="font-size: 12px; margin-bottom: 4px;">Teammate Register Number *</label>
+                <input type="text" id="manualMemberRegNo" class="form-input" placeholder="e.g. 24CSE015" style="text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">
               </div>
-              <div class="form-group">
-                <label class="form-label" for="manualMemberRegNo" style="font-size: 12px; margin-bottom: 4px;">Register Number *</label>
-                <input type="text" id="manualMemberRegNo" class="form-input" placeholder="e.g. 24CSE015" style="text-transform: uppercase;">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="manualMemberEmail" style="font-size: 12px; margin-bottom: 4px;">Email ID *</label>
-                <input type="email" id="manualMemberEmail" class="form-input" placeholder="e.g. rahul@rgm.edu">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="manualMemberPhone" style="font-size: 12px; margin-bottom: 4px;">Phone Number *</label>
-                <input type="tel" id="manualMemberPhone" class="form-input" placeholder="e.g. 9876543210">
-              </div>
-              <div class="modal-team-add-btn-wrapper">
-                <button type="button" class="btn btn-primary" id="btnAddManualMember" style="width: 100%; height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                  + Add Member
+              <div class="modal-team-add-btn-wrapper" style="margin-bottom: 0;">
+                <button type="button" class="btn btn-primary" id="btnAddManualMember" style="height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 18px; font-weight: 600;">
+                  <span>🔍 Verify &amp; Add Teammate</span>
                 </button>
               </div>
             </div>
 
+            <!-- Feedback / Lookup status message container -->
+            <div id="memberLookupFeedback" style="display: none; margin-bottom: 12px; font-size: 12px; padding: 8px 12px; border-radius: 6px;"></div>
+
             <!-- Selected Members List -->
             <div id="selectedMembersList" style="display: flex; flex-direction: column; gap: 8px;">
-              <!-- Auto populated with Team Leader and manually added members -->
+              <!-- Auto populated with Team Leader and verified registered members -->
             </div>
           </div>
 
@@ -689,33 +680,24 @@
               <h4 class="modal-team-title">Team Members</h4>
               <span class="badge badge-submitted" id="editMemberCountBadge">Team Members</span>
             </div>
-            <p class="modal-team-desc">
-              Correct team member details or add/remove students. Automated Email &amp; In-App alerts are dispatched to all team members.
-            </p>
+            <div style="background: rgba(37, 99, 235, 0.06); border-left: 3px solid #2563eb; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 12px; color: #1e293b; line-height: 1.5;">
+              <strong>📋 Note:</strong> All teammates must be registered on the portal. Enter their Register Number to add them to this project.
+            </div>
 
-            <div class="modal-team-manual-entry">
-              <div class="form-group">
-                <label class="form-label" for="editManualMemberName" style="font-size: 12px; margin-bottom: 4px;">Student Name *</label>
-                <input type="text" id="editManualMemberName" class="form-input" placeholder="e.g. Rahul Sharma">
+            <div class="modal-team-lookup-entry" style="display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; flex-wrap: wrap;">
+              <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                <label class="form-label" for="editManualMemberRegNo" style="font-size: 12px; margin-bottom: 4px;">Teammate Register Number *</label>
+                <input type="text" id="editManualMemberRegNo" class="form-input" placeholder="e.g. 24CSE015" style="text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">
               </div>
-              <div class="form-group">
-                <label class="form-label" for="editManualMemberRegNo" style="font-size: 12px; margin-bottom: 4px;">Register Number *</label>
-                <input type="text" id="editManualMemberRegNo" class="form-input" placeholder="e.g. 24CSE015" style="text-transform: uppercase;">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="editManualMemberEmail" style="font-size: 12px; margin-bottom: 4px;">Email ID *</label>
-                <input type="email" id="editManualMemberEmail" class="form-input" placeholder="e.g. rahul@rgm.edu">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="editManualMemberPhone" style="font-size: 12px; margin-bottom: 4px;">Phone Number *</label>
-                <input type="tel" id="editManualMemberPhone" class="form-input" placeholder="e.g. 9876543210">
-              </div>
-              <div class="modal-team-add-btn-wrapper">
-                <button type="button" class="btn btn-primary" id="btnEditAddManualMember" style="width: 100%; height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                  + Add Member
+              <div class="modal-team-add-btn-wrapper" style="margin-bottom: 0;">
+                <button type="button" class="btn btn-primary" id="btnEditAddManualMember" style="height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 18px; font-weight: 600;">
+                  <span>🔍 Verify &amp; Add Teammate</span>
                 </button>
               </div>
             </div>
+
+            <!-- Edit Feedback container -->
+            <div id="editMemberLookupFeedback" style="display: none; margin-bottom: 12px; font-size: 12px; padding: 8px 12px; border-radius: 6px;"></div>
 
             <!-- Edit Selected Members List -->
             <div id="editSelectedMembersList" style="display: flex; flex-direction: column; gap: 8px;"></div>

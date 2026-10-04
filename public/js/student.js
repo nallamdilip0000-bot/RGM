@@ -174,51 +174,41 @@ function setupModals() {
     });
   });
 
-  // Manual member entry inside create project modal
+  // Member lookup & addition inside create project modal
   const btnAddMember = document.getElementById('btnAddManualMember');
-  const inputMemberName = document.getElementById('manualMemberName');
   const inputMemberReg = document.getElementById('manualMemberRegNo');
-  const inputMemberEmail = document.getElementById('manualMemberEmail');
-  const inputMemberPhone = document.getElementById('manualMemberPhone');
 
   if (btnAddMember) {
     btnAddMember.addEventListener('click', handleAddManualMember);
   }
-  [inputMemberName, inputMemberReg, inputMemberEmail, inputMemberPhone].forEach(input => {
-    if (input) {
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          handleAddManualMember();
-        }
-      });
-    }
-  });
+  if (inputMemberReg) {
+    inputMemberReg.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddManualMember();
+      }
+    });
+  }
 
   // Create Project Form Submit
   const projForm = document.getElementById('createProjectForm');
   if (projForm) projForm.addEventListener('submit', handleCreateProjectSubmit);
 
-  // Edit Project Form Listeners
+  // Edit Project Member Lookup Listeners
   const btnEditAddMember = document.getElementById('btnEditAddManualMember');
-  const inputEditMemberName = document.getElementById('editManualMemberName');
   const inputEditMemberReg = document.getElementById('editManualMemberRegNo');
-  const inputEditMemberEmail = document.getElementById('editManualMemberEmail');
-  const inputEditMemberPhone = document.getElementById('editManualMemberPhone');
 
   if (btnEditAddMember) {
     btnEditAddMember.addEventListener('click', addEditManualMember);
   }
-  [inputEditMemberName, inputEditMemberReg, inputEditMemberEmail, inputEditMemberPhone].forEach(input => {
-    if (input) {
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          addEditManualMember();
-        }
-      });
-    }
-  });
+  if (inputEditMemberReg) {
+    inputEditMemberReg.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addEditManualMember();
+      }
+    });
+  }
 
   const editProjForm = document.getElementById('editProjectForm');
   if (editProjForm) editProjForm.addEventListener('submit', handleEditProjectSubmit);
@@ -330,86 +320,96 @@ function setupModals() {
   }
 }
 
-// Add member manually by Name, Register Number, Email and Phone
-function handleAddManualMember() {
-  const nameInput = document.getElementById('manualMemberName');
+// Add member by verifying their registered account (Mandatory Pre-Registration)
+async function handleAddManualMember() {
   const regInput = document.getElementById('manualMemberRegNo');
-  const emailInput = document.getElementById('manualMemberEmail');
-  const phoneInput = document.getElementById('manualMemberPhone');
+  const btnAdd = document.getElementById('btnAddManualMember');
+  const feedbackEl = document.getElementById('memberLookupFeedback');
 
-  const name = nameInput ? nameInput.value.trim() : '';
-  const registerNumber = regInput ? regInput.value.trim().toUpperCase() : '';
-  const email = emailInput ? emailInput.value.trim().toLowerCase() : '';
-  const phone = phoneInput ? phoneInput.value.trim().replace(/\s+/g, '') : '';
+  const regNo = regInput ? regInput.value.trim().toUpperCase() : '';
 
-  if (!name) {
-    showToast('Please enter the team member name', 'warning');
-    nameInput?.focus();
-    return;
-  }
-  if (!registerNumber) {
-    showToast('Please enter the team member register number', 'warning');
+  if (!regNo) {
+    showToast('Please enter the teammate\'s Register Number', 'warning');
     regInput?.focus();
     return;
   }
-  if (!email) {
-    showToast('Please enter the team member email address', 'warning');
-    emailInput?.focus();
-    return;
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showToast('Please enter a valid email address (e.g. student@rgm.edu)', 'warning');
-    emailInput?.focus();
-    return;
-  }
-  if (!phone) {
-    showToast('Please enter the team member phone number', 'warning');
-    phoneInput?.focus();
-    return;
-  }
-  if (!/^\+?[0-9]{10,14}$/.test(phone)) {
-    showToast('Please enter a valid 10-digit mobile number (e.g. 9876543210)', 'warning');
-    phoneInput?.focus();
-    return;
-  }
 
-  // Check duplicate register number
-  const isDuplicateReg = newProjectMembers.some(m =>
-    m.registerNumber && m.registerNumber.toUpperCase() === registerNumber
+  // Check duplicate in list
+  const isDuplicate = newProjectMembers.some(m =>
+    (m.registerNumber && m.registerNumber.toUpperCase() === regNo) ||
+    (m.email && m.email.toLowerCase() === regNo.toLowerCase())
   );
-  if (isDuplicateReg) {
-    showToast(`Team member with register number "${registerNumber}" is already added.`, 'warning');
+  if (isDuplicate) {
+    showToast(`Teammate "${regNo}" is already in your team list.`, 'warning');
     return;
   }
 
-  // Check duplicate email
-  const isDuplicateEmail = newProjectMembers.some(m =>
-    m.email && m.email.toLowerCase() === email
-  );
-  if (isDuplicateEmail) {
-    showToast(`Team member with email "${email}" is already added.`, 'warning');
-    return;
+  try {
+    if (btnAdd) {
+      btnAdd.disabled = true;
+      btnAdd.innerHTML = '<span>⏳ Verifying...</span>';
+    }
+    if (feedbackEl) {
+      feedbackEl.style.display = 'none';
+    }
+
+    const res = await apiRequest(`/student/lookup-member?regNo=${encodeURIComponent(regNo)}`);
+    if (res.success && res.member) {
+      const m = res.member;
+
+      // Double check duplicate by ID or email
+      if (newProjectMembers.some(x => String(x.id || x._id) === String(m.id || m._id))) {
+        showToast(`Teammate "${m.name}" is already in your team list.`, 'warning');
+        return;
+      }
+
+      newProjectMembers.push({
+        _id: m.id || m._id,
+        id: m.id || m._id,
+        name: m.name,
+        registerNumber: m.registerNumber,
+        email: m.email,
+        phone: m.phone || '',
+        department: m.department || '',
+        year: m.year || '',
+        isLeader: false
+      });
+
+      if (regInput) regInput.value = '';
+      renderSelectedMembers();
+
+      if (res.warning) {
+        showToast(`Added ${m.name} (${m.registerNumber}). ${res.warning}`, 'info');
+      } else {
+        showToast(`✓ Verified & Added ${m.name} (${m.registerNumber})`, 'success');
+      }
+
+      if (feedbackEl) {
+        feedbackEl.style.display = 'block';
+        feedbackEl.style.background = '#ecfdf5';
+        feedbackEl.style.color = '#065f46';
+        feedbackEl.style.border = '1px solid #a7f3d0';
+        feedbackEl.innerHTML = `✓ <strong>${m.name}</strong> (${m.registerNumber} &bull; ${m.department} ${m.year}) added to team.`;
+        setTimeout(() => { if (feedbackEl) feedbackEl.style.display = 'none'; }, 4000);
+      }
+    }
+  } catch (err) {
+    const errMsg = err.message || 'Student lookup failed';
+    showToast(errMsg, 'error');
+    if (feedbackEl) {
+      feedbackEl.style.display = 'block';
+      feedbackEl.style.background = '#fef2f2';
+      feedbackEl.style.color = '#991b1b';
+      feedbackEl.style.border = '1px solid #fecaca';
+      feedbackEl.innerHTML = `⚠️ ${errMsg}`;
+    }
+    regInput?.focus();
+  } finally {
+    if (btnAdd) {
+      btnAdd.disabled = false;
+      btnAdd.innerHTML = '<span>🔍 Verify &amp; Add Teammate</span>';
+    }
   }
-
-  const memberId = 'mem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-  newProjectMembers.push({
-    _id: memberId,
-    id: memberId,
-    name,
-    registerNumber,
-    email,
-    phone,
-    isLeader: false
-  });
-
-  if (nameInput) nameInput.value = '';
-  if (regInput) regInput.value = '';
-  if (emailInput) emailInput.value = '';
-  if (phoneInput) phoneInput.value = '';
-  nameInput?.focus();
-
-  renderSelectedMembers();
-  showToast(`Added ${name} (${registerNumber})`, 'success');
 }
 
 // Remove member from temporary list
@@ -498,83 +498,93 @@ window.openEditProjectModal = async function(projectId) {
   document.getElementById('editProjectModal').classList.add('active');
 };
 
-function addEditManualMember() {
-  const nameInput = document.getElementById('editManualMemberName');
+async function addEditManualMember() {
   const regInput = document.getElementById('editManualMemberRegNo');
-  const emailInput = document.getElementById('editManualMemberEmail');
-  const phoneInput = document.getElementById('editManualMemberPhone');
+  const btnAdd = document.getElementById('btnEditAddManualMember');
+  const feedbackEl = document.getElementById('editMemberLookupFeedback');
 
-  const name = nameInput ? nameInput.value.trim() : '';
-  const registerNumber = regInput ? regInput.value.trim().toUpperCase() : '';
-  const email = emailInput ? emailInput.value.trim().toLowerCase() : '';
-  const phone = phoneInput ? phoneInput.value.trim().replace(/\s+/g, '') : '';
+  const regNo = regInput ? regInput.value.trim().toUpperCase() : '';
 
-  if (!name) {
-    showToast('Please enter the team member name', 'warning');
-    nameInput?.focus();
-    return;
-  }
-  if (!registerNumber) {
-    showToast('Please enter the team member register number', 'warning');
+  if (!regNo) {
+    showToast('Please enter the teammate\'s Register Number', 'warning');
     regInput?.focus();
     return;
   }
-  if (!email) {
-    showToast('Please enter the team member email address', 'warning');
-    emailInput?.focus();
-    return;
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showToast('Please enter a valid email address (e.g. student@rgm.edu)', 'warning');
-    emailInput?.focus();
-    return;
-  }
-  if (!phone) {
-    showToast('Please enter the team member phone number', 'warning');
-    phoneInput?.focus();
-    return;
-  }
-  if (!/^\+?[0-9]{10,14}$/.test(phone)) {
-    showToast('Please enter a valid 10-digit mobile number (e.g. 9876543210)', 'warning');
-    phoneInput?.focus();
-    return;
-  }
 
-  const isDuplicateReg = editingProjectMembers.some(m =>
-    m.registerNumber && m.registerNumber.toUpperCase() === registerNumber
+  const isDuplicate = editingProjectMembers.some(m =>
+    (m.registerNumber && m.registerNumber.toUpperCase() === regNo) ||
+    (m.email && m.email.toLowerCase() === regNo.toLowerCase())
   );
-  if (isDuplicateReg) {
-    showToast(`Member with register number "${registerNumber}" is already in the team.`, 'warning');
+  if (isDuplicate) {
+    showToast(`Teammate "${regNo}" is already in the project team.`, 'warning');
     return;
   }
 
-  const isDuplicateEmail = editingProjectMembers.some(m =>
-    m.email && m.email.toLowerCase() === email
-  );
-  if (isDuplicateEmail) {
-    showToast(`Member with email "${email}" is already in the team.`, 'warning');
-    return;
+  try {
+    if (btnAdd) {
+      btnAdd.disabled = true;
+      btnAdd.innerHTML = '<span>⏳ Verifying...</span>';
+    }
+    if (feedbackEl) {
+      feedbackEl.style.display = 'none';
+    }
+
+    const res = await apiRequest(`/student/lookup-member?regNo=${encodeURIComponent(regNo)}`);
+    if (res.success && res.member) {
+      const m = res.member;
+
+      if (editingProjectMembers.some(x => String(x.id || x._id) === String(m.id || m._id))) {
+        showToast(`Teammate "${m.name}" is already in the project team.`, 'warning');
+        return;
+      }
+
+      editingProjectMembers.push({
+        _id: m.id || m._id,
+        id: m.id || m._id,
+        name: m.name,
+        registerNumber: m.registerNumber,
+        email: m.email,
+        phone: m.phone || '',
+        department: m.department || '',
+        year: m.year || '',
+        isLeader: false
+      });
+
+      if (regInput) regInput.value = '';
+      renderEditSelectedMembers();
+
+      if (res.warning) {
+        showToast(`Added ${m.name} (${m.registerNumber}). ${res.warning}`, 'info');
+      } else {
+        showToast(`✓ Verified & Added ${m.name} (${m.registerNumber})`, 'success');
+      }
+
+      if (feedbackEl) {
+        feedbackEl.style.display = 'block';
+        feedbackEl.style.background = '#ecfdf5';
+        feedbackEl.style.color = '#065f46';
+        feedbackEl.style.border = '1px solid #a7f3d0';
+        feedbackEl.innerHTML = `✓ <strong>${m.name}</strong> (${m.registerNumber} &bull; ${m.department} ${m.year}) added to team.`;
+        setTimeout(() => { if (feedbackEl) feedbackEl.style.display = 'none'; }, 4000);
+      }
+    }
+  } catch (err) {
+    const errMsg = err.message || 'Student lookup failed';
+    showToast(errMsg, 'error');
+    if (feedbackEl) {
+      feedbackEl.style.display = 'block';
+      feedbackEl.style.background = '#fef2f2';
+      feedbackEl.style.color = '#991b1b';
+      feedbackEl.style.border = '1px solid #fecaca';
+      feedbackEl.innerHTML = `⚠️ ${errMsg}`;
+    }
+    regInput?.focus();
+  } finally {
+    if (btnAdd) {
+      btnAdd.disabled = false;
+      btnAdd.innerHTML = '<span>🔍 Verify &amp; Add Teammate</span>';
+    }
   }
-
-  const memberId = 'mem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-  editingProjectMembers.push({
-    _id: memberId,
-    id: memberId,
-    name,
-    registerNumber,
-    email,
-    phone,
-    isLeader: false
-  });
-
-  if (nameInput) nameInput.value = '';
-  if (regInput) regInput.value = '';
-  if (emailInput) emailInput.value = '';
-  if (phoneInput) phoneInput.value = '';
-  nameInput?.focus();
-
-  renderEditSelectedMembers();
-  showToast(`Added ${name} (${registerNumber})`, 'success');
 }
 
 window.removeEditMemberFromProject = function(id) {

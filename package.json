@@ -1,6 +1,6 @@
 {
   "name": "personal-project-milestone-tracker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Full-stack personal project milestone tracker for students, faculty, and administrators",
   "main": "server.js",
   "scripts": {

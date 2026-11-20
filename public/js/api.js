@@ -118,12 +118,26 @@ async function apiUpload(endpoint, formData) {
       headers,
       body: formData
     });
-    const data = await response.json();
+
+    if (response.status === 413) {
+      throw new Error('File is too large for cloud hosting (Maximum 4.5MB on Vercel). Please compress your PDF or PPT before uploading.');
+    }
 
     if (response.status === 401) {
       if (window.location.pathname !== '/' && !window.location.pathname.endsWith('index.html')) {
         logout();
       }
+    }
+
+    let data;
+    const text = await response.text();
+    try {
+      data = JSON.parse(text);
+    } catch (parseErr) {
+      if (!response.ok) {
+        throw new Error(`Upload failed (${response.status} ${response.statusText || 'Server Error'}). ${text.substring(0, 100)}`);
+      }
+      throw new Error('Server returned an invalid response format.');
     }
 
     if (!response.ok) {

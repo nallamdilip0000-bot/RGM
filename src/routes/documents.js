@@ -238,6 +238,218 @@ router.post('/upload', verifyToken, (req, res) => {
 });
 
 // ==========================================
+// 1B. CHUNKED UPLOAD (Bypasses Vercel 4.5MB limit, supports up to 50MB)
+// ==========================================
+router.post('/upload-chunk', verifyToken, (req, res) => {
+  upload.single('chunk')(req, res, async (err) => {
+    if (err) return res.status(400).json({ success: false, message: err.message });
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ success: false, message: 'Chunk file payload missing.' });
+      }
+
+      const { uploadId, chunkIndex, totalChunks } = req.body;
+      if (!uploadId || chunkIndex === undefined || !totalChunks) {
+        return res.status(400).json({ success: false, message: 'uploadId, chunkIndex, and totalChunks are required.' });
+      }
+
+      const cleanId = String(uploadId).trim();
+      const idx = parseInt(chunkIndex, 10);
+      const total = parseInt(totalChunks, 10);
+      const base64Chunk = req.file.buffer.toString('base64');
+
+      const { db, doc, setDoc } = require('../config/firebase');
+      const chunkRef = doc(db, 'project_document_data', `${cleanId}_chunk_${idx}`);
+      await setDoc(chunkRef, {
+        docId: cleanId,
+        chunkIndex: idx,
+        data: base64Chunk,
+        totalChunks: total,
+        uploadedAt: new Date().toISOString()
+      });
+
+      res.json({
+        success: true,
+        message: `Chunk ${idx + 1} of ${total} uploaded successfully.`,
+        chunkIndex: idx,
+        totalChunks: total
+      });
+    } catch (chunkErr) {
+      console.error('Upload chunk error:', chunkErr);
+      res.status(500).json({ success: false, message: 'Failed to save chunk.', error: chunkErr.message });
+    }
+  });
+});
+
+// ==========================================
+// 1C. COMPLETE CHUNKED UPLOAD
+// ==========================================
+router.post('/upload-complete', verifyToken, async (req, res) => {
+  try {
+    const {
+      uploadId,
+      projectId,
+      category,
+      title,
+      description,
+      submissionType,
+      memberId,
+      memberName,
+      memberRegNo,
+      originalName,
+      mimetype,
+      fileSize,
+      totalChunks
+    } = req.body;
+
+    if (!uploadId || !projectId) {
+      return res.status(400).json({ success: false, message: 'uploadId and projectId are required.' });
+    }
+
+    const project = await Projects.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found.' });
+    }
+
+    const userId = String(req.user.id);
+    const isLeader = String(project.teamLeaderId?.id || project.teamLeaderId?._id || project.teamLeaderId) === userId;
+    const isMember = Array.isArray(project.teamMemberIds) && project.teamMemberIds.some(m => String(m?.id || m?._id || m) === userId);
+    const isAssignedFaculty = String(project.facultyId?.id || project.facultyId?._id || project.facultyId) === userId;
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isLeader && !isMember && !isAssignedFaculty && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'Unauthorized. You are not a member of this project.' });
+    }
+
+    const cleanId = String(uploadId).trim();
+    const isIndividual = submissionType === 'Individual';
+    const effectiveSubmissionType = isIndividual ? 'Individual' : 'Team';
+    const effectiveMemberName = memberName ? memberName.trim() : (req.user.name || 'Student');
+    const effectiveMemberRegNo = memberRegNo ? memberRegNo.trim().toUpperCase() : (req.user.registerNumber || '');
+    const effectiveMemberId = memberId || req.user.id;
+
+    const submissionScope = isIndividual
+      ? `Individual (${effectiveMemberName}${effectiveMemberRegNo ? ` - ${effectiveMemberRegNo}` : ''})`
+      : 'Entire Team';
+
+    const docCategory = category || 'Project Report';
+    const docTitle = (title && title.trim()) ? title.trim() : (originalName || 'Document');
+    const ext = path.extname(originalName || '');
+    const baseName = path.basename(originalName || 'document', ext).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const generatedFileName = `${baseName}_${uniqueSuffix}${ext}`;
+    const fileUrl = `/api/documents/raw/${cleanId}`;
+
+    const rawFacId = project.facultyId?.id || project.facultyId?._id || project.facultyId;
+    let faculty = await Faculty.findById(rawFacId);
+    if (!faculty) faculty = await Faculty.findByFacultyId(rawFacId);
+
+    const { db, doc, setDoc } = require('../config/firebase');
+    const headerRef = doc(db, 'project_document_data', cleanId);
+    await setDoc(headerRef, {
+      docId: cleanId,
+      isChunked: true,
+      totalChunks: parseInt(totalChunks, 10),
+      size: parseInt(fileSize, 10),
+      mimetype: mimetype || 'application/octet-stream',
+      originalName: originalName || '',
+      fileName: generatedFileName,
+      createdAt: new Date().toISOString()
+    });
+
+    const docRecord = await ProjectDocuments.create({
+      id: cleanId,
+      _id: cleanId,
+      projectId: project.id,
+      projectName: project.projectName,
+      projectDomain: project.domain || '',
+      category: docCategory,
+      title: docTitle,
+      description: description ? description.trim() : '',
+      submissionType: effectiveSubmissionType,
+      submissionScope: submissionScope,
+      individualMember: isIndividual ? {
+        id: effectiveMemberId,
+        name: effectiveMemberName,
+        registerNumber: effectiveMemberRegNo
+      } : null,
+      originalName: originalName || generatedFileName,
+      fileName: generatedFileName,
+      fileUrl: fileUrl,
+      fileSize: parseInt(fileSize, 10),
+      mimetype: mimetype || 'application/octet-stream',
+      uploadedBy: {
+        id: req.user.id,
+        name: req.user.name || 'Student',
+        role: req.user.role || 'student',
+        registerNumber: req.user.registerNumber || ''
+      },
+      facultyId: faculty ? (faculty.id || faculty._id) : rawFacId,
+      createdAt: new Date().toISOString()
+    });
+
+    if (req.user.role === 'student' && faculty) {
+      const studentName = req.user.name || 'Student';
+      const studentRegNo = req.user.registerNumber ? ` (${req.user.registerNumber})` : '';
+      const appUrl = process.env.APP_URL || 'http://localhost:5000';
+      const facultyPortalUrl = `${appUrl}/faculty/?tab=tabDocuments&projectId=${project.id}`;
+      const notifTitle = `📄 New Document Uploaded: "${docTitle}" (${effectiveSubmissionType})`;
+      const notifMessage = `${studentName}${studentRegNo} uploaded a new ${docCategory} [${submissionScope}]: "${docTitle}" for project "${project.projectName}".`;
+
+      const emailHtml = generateProfessionalEmailTemplate({
+        title: 'New Student Project Deliverable Uploaded',
+        recipientName: faculty.name,
+        preheader: `${studentName} uploaded "${docTitle}" for ${project.projectName}`,
+        leadText: `A new student deliverable has been uploaded for your assigned project: <strong>${project.projectName}</strong>.`,
+        detailsTable: [
+          { label: 'Project Name', value: project.projectName },
+          { label: 'Document Title', value: docTitle },
+          { label: 'Deliverable Type', value: docCategory },
+          { label: 'Submission Scope', value: submissionScope },
+          { label: 'Submitted By', value: `${studentName}${studentRegNo}` },
+          { label: 'File Size', value: `${(parseInt(fileSize, 10) / (1024 * 1024)).toFixed(2)} MB` },
+          { label: 'Upload Date', value: new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }) }
+        ],
+        actionSteps: [
+          'Log into the Faculty Portal to inspect and download the student submission.',
+          'Review the document content to ensure alignment with milestone objectives.',
+          'Discuss feedback with the student team during your regular project review sessions.'
+        ],
+        buttonText: 'View Submissions in Faculty Portal',
+        buttonUrl: facultyPortalUrl,
+        alertType: 'info'
+      });
+
+      await notifyUser({
+        userId: faculty.id || faculty._id,
+        userModel: 'Faculty',
+        userRole: 'faculty',
+        userEmail: faculty.email,
+        userName: faculty.name,
+        userPhone: faculty.phone,
+        preferences: faculty.notificationPreferences || { inApp: true, email: true },
+        projectId: project.id,
+        type: `DOCUMENT_UPLOADED_${docRecord.id}_${Date.now()}`,
+        title: notifTitle,
+        message: notifMessage,
+        emailHtml,
+        isDirectAction: true,
+        force: true
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `${docCategory} uploaded successfully.`,
+      data: docRecord
+    });
+  } catch (compErr) {
+    console.error('Upload complete handler error:', compErr);
+    res.status(500).json({ success: false, message: 'Failed to finalize document upload.', error: compErr.message });
+  }
+});
+
+// ==========================================
 // 2. GET DOCUMENTS FOR A SPECIFIC PROJECT
 // ==========================================
 router.get('/project/:projectId', verifyToken, async (req, res) => {

@@ -3,6 +3,7 @@ const router = express.Router();
 const { Evaluations, IndividualEvaluations, Projects, Users } = require('../services/dbService');
 const { verifyToken, requireRole } = require('../middleware/auth');
 const { notifyUser } = require('../services/notificationService');
+const { recalculateProgress } = require('../services/progressService');
 
 // ==========================================
 // 1. SAVE OR UPDATE PROJECT EVALUATION (Faculty only - Firebase)

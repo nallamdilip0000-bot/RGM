@@ -1041,16 +1041,16 @@ const ProjectDocuments = {
             return buf;
           } else if (headerData.isChunked && headerData.totalChunks) {
             const totalChunks = headerData.totalChunks;
-            let fullBase64 = '';
+            const chunkBuffers = [];
             for (let i = 0; i < totalChunks; i++) {
               const chunkRef = doc(db, 'project_document_data', `${cleanId}_chunk_${i}`);
               const chunkSnap = await getDoc(chunkRef);
-              if (chunkSnap.exists()) {
-                fullBase64 += (chunkSnap.data().data || '');
+              if (chunkSnap.exists() && chunkSnap.data().data) {
+                chunkBuffers.push(Buffer.from(chunkSnap.data().data, 'base64'));
               }
             }
-            if (fullBase64) {
-              const buf = Buffer.from(fullBase64, 'base64');
+            if (chunkBuffers.length > 0) {
+              const buf = Buffer.concat(chunkBuffers);
               fileBufferCache.set(cleanId, buf);
               return buf;
             }

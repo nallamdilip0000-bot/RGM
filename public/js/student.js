@@ -2658,31 +2658,82 @@ async function handleUploadDocumentSubmit(e) {
     return;
   }
 
-  const formData = new FormData();
-  formData.append('projectId', projectId);
-  formData.append('category', category);
-  formData.append('title', title || file.name);
-  formData.append('description', description);
-  formData.append('submissionType', submissionType);
-
+  let memberId = '';
+  let memberName = '';
+  let memberRegNo = '';
   if (submissionType === 'Individual') {
     const memberSelect = document.getElementById('uploadDocMemberSelect');
     if (memberSelect && memberSelect.selectedIndex >= 0) {
       const opt = memberSelect.options[memberSelect.selectedIndex];
-      formData.append('memberId', opt.value || '');
-      formData.append('memberName', opt.dataset.name || opt.text || '');
-      formData.append('memberRegNo', opt.dataset.reg || '');
+      memberId = opt.value || '';
+      memberName = opt.dataset.name || opt.text || '';
+      memberRegNo = opt.dataset.reg || '';
     }
   }
-
-  formData.append('file', file);
 
   try {
     if (btnSubmit) btnSubmit.disabled = true;
     if (spinner) spinner.style.display = 'inline';
     if (btnText) btnText.style.display = 'none';
 
-    const res = await apiUpload('/documents/upload', formData);
+    let res;
+    const CHUNK_THRESHOLD = 3 * 1024 * 1024; // If file > 3MB, upload in chunks (supports up to 50MB on Vercel)
+
+    if (file.size > CHUNK_THRESHOLD) {
+      const CHUNK_SIZE = 600 * 1024; // 600 KB per chunk (fits Firestore 1MB doc & Vercel 4.5MB payload)
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      const uploadId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunkBlob = file.slice(start, end);
+
+        const chunkForm = new FormData();
+        chunkForm.append('uploadId', uploadId);
+        chunkForm.append('chunkIndex', i);
+        chunkForm.append('totalChunks', totalChunks);
+        chunkForm.append('chunk', chunkBlob, file.name);
+
+        const pct = Math.round(((i + 1) / totalChunks) * 100);
+        if (spinner) spinner.textContent = `⏳ Uploading ${pct}% (${i + 1}/${totalChunks})...`;
+
+        await apiUpload('/documents/upload-chunk', chunkForm);
+      }
+
+      if (spinner) spinner.textContent = '⏳ Finalizing & Notifying Guide...';
+
+      res = await apiRequest('/documents/upload-complete', 'POST', {
+        uploadId,
+        projectId,
+        category,
+        title: title || file.name,
+        description,
+        submissionType,
+        memberId,
+        memberName,
+        memberRegNo,
+        originalName: file.name,
+        mimetype: file.type || 'application/octet-stream',
+        fileSize: file.size,
+        totalChunks
+      });
+    } else {
+      if (spinner) spinner.textContent = '⏳ Uploading...';
+      const formData = new FormData();
+      formData.append('projectId', projectId);
+      formData.append('category', category);
+      formData.append('title', title || file.name);
+      formData.append('description', description);
+      formData.append('submissionType', submissionType);
+      if (submissionType === 'Individual') {
+        formData.append('memberId', memberId);
+        formData.append('memberName', memberName);
+        formData.append('memberRegNo', memberRegNo);
+      }
+      formData.append('file', file);
+      res = await apiUpload('/documents/upload', formData);
+    }
 
     if (res.success) {
       showToast(`${category} uploaded and shared with Faculty Guide!`, 'success');
